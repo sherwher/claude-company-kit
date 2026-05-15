@@ -1,0 +1,31 @@
+# Base (always installed, 5 workers)
+service-planner	base
+strategy-planner	base
+brainstormer	base
+data-analyst	base
+qa-reviewer	base
+# Business (4 workers)
+proposal-writer	business
+risk-reviewer	business
+growth-marketer	business
+content-strategist	business
+# Engineering (3 workers)
+fullstack-architect	engineering
+frontend-engineer	engineering
+backend-engineer	engineering
+# Design (3 workers)
+ux-researcher	design
+ux-designer	design
+graphic-designer	design
+# Game (11 workers)
+game-designer	game
+game-director	game
+game-programmer	game
+level-designer	game
+narrative-designer	game
+game-artist	game
+technical-artist	game
+game-audio	game
+game-qa	game
+unity-engineer	game
+unreal-engineer	game

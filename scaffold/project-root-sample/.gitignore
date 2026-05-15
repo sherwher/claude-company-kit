@@ -1,0 +1,21 @@
+# >>> company-kit managed (harness 가 관리 — 아래 블록은 template update 시 덮어써집니다) >>>
+.company-kit/
+.company-runtime/
+.company-artifacts/
+.company-exports/
+.company-local.env
+.claude/settings.local.json
+.company-project/_template-updates/
+.codex/
+.omc/
+firebase-debug.log
+
+# Integration env files may contain API keys and secrets.
+.company-project/integrations/*.env
+
+# Commit only if the project team explicitly wants shared overlay files.
+# .company-project/
+# <<< company-kit managed <<<
+
+# 프로젝트 고유 규칙을 위·아래 managed 블록 외부에 자유롭게 추가하세요.
+# managed 블록 밖 내용은 template update 시 보존됩니다.

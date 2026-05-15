@@ -1,0 +1,150 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ai-company.local/schemas/compact-result.schema.json",
+  "title": "Compact Result Schema",
+  "$comment": "R12 5-B: R9 draft에서 운영 승격. 강제 수준은 frontmatter.meta 식별자만 strict로 유지하고, 본문 섹션(decisions/completed_outputs/deviations/evidence_delivered/observed_unknown_kinds 등)은 모두 optional + additionalProperties:true로 풀어 R11 P2 자유 섹션과 향후 확장을 수용한다. 검증기 연결(5-C)은 별도 세션. evidence_delivered_kinds는 SSOT(config/company.yaml evidence.kinds 10종)을 참조하지만 강제력은 없다(아직 lint warn도 미연결).",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["frontmatter"],
+  "properties": {
+    "frontmatter": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["meta"],
+      "properties": {
+        "meta": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["session_id", "worker", "role", "plan_sha256", "created_at"],
+          "properties": {
+            "session_id": {
+              "type": "string",
+              "minLength": 3
+            },
+            "worker": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{1,63}$"
+            },
+            "role": {
+              "type": "string",
+              "minLength": 3
+            },
+            "plan_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$",
+              "$comment": "왜: plan↔result 1:1 매핑의 핵심 키. 풀면 schema 의미가 사라지므로 5-B에서도 strict 유지."
+            },
+            "created_at": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        }
+      }
+    },
+    "decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "summary": {
+            "type": "string",
+            "minLength": 3
+          },
+          "evidence_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true
+          }
+        }
+      }
+    },
+    "completed_outputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "minLength": 3
+          }
+        }
+      }
+    },
+    "deviations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "description": {
+            "type": "string",
+            "minLength": 3
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 3
+          },
+          "impact": {
+            "type": "string",
+            "minLength": 3
+          }
+        }
+      }
+    },
+    "export_candidate_paths": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "evidence_delivered_kinds": {
+      "type": "array",
+      "$comment": "왜: R11 P2 'Evidence Delivered' 섹션의 구조화 진입로. SSOT(config/company.yaml evidence.kinds)의 10종 enum을 참조하지만 검증기 미연결 상태라 강제력은 없다. 5-C 단계에서 lint warn으로 승격 후보.",
+      "items": {
+        "$ref": "#/definitions/evidenceKind"
+      },
+      "uniqueItems": true
+    },
+    "observed_unknown_kinds": {
+      "type": "array",
+      "$comment": "왜: R11 P2 'Observed Unknown Kinds' 섹션의 구조화. C 후보(evidence_kind enum 확장 RFC)의 fixture 수집 포인트라 자유 텍스트 유지. enum 강제 시 자기모순.",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "definitions": {
+    "evidenceKind": {
+      "type": "string",
+      "$comment": "SSOT: config/company.yaml evidence.kinds[*].id. 10종 enum 변경 시 양쪽 동시 갱신 필요(현재는 수동, R12+ doctor 게이트 후보).",
+      "enum": [
+        "code_symbol_or_reference",
+        "repo_text_or_diff",
+        "external_spec_or_policy",
+        "api_contract_or_schema",
+        "runtime_log_or_trace",
+        "static_vuln_scan",
+        "product_metric_lookup",
+        "experiment_or_feedback_artifact",
+        "dependency_or_sbom",
+        "architecture_or_decision_record"
+      ]
+    }
+  }
+}

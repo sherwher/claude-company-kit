@@ -1,0 +1,58 @@
+{
+  "teammateMode": "tmux",
+  "env": {
+    "CLAUDE_THINKING_MODE": "always",
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "bash .company-kit/scripts/claude-tmux-statusline.sh"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(nlm *)",
+      "Bash(company *)",
+      "Bash(bash .company-kit/scripts/company *)",
+      "Bash(bash .company-kit/scripts/company run *)",
+      "Bash(bash .company-kit/scripts/company worker *)",
+      "Bash(bash .company-kit/scripts/company status)",
+      "Bash(bash .company-kit/scripts/company doctor)",
+      "Bash(bash .company-kit/scripts/company approve *)",
+      "Bash(bash .company-kit/scripts/company close *)",
+      "Bash(bash .company-kit/scripts/*.sh *)",
+      "Bash(which npm:*)",
+      "Bash(npm --version:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run typecheck:*)",
+      "Bash(tmux list-panes:*)",
+      "Bash(tmux display-message:*)",
+      "Bash(tmux send-keys:*)",
+      "Bash(tmux split-window:*)",
+      "Bash(tmux new-window:*)",
+      "Bash(tmux select-pane:*)",
+      "Bash(cmux current-workspace:*)",
+      "Bash(cmux list-panes:*)",
+      "Bash(cmux send:*)",
+      "Bash(cmux send-key:*)",
+      "Bash(cmux send-panel:*)",
+      "Bash(cmux send-key-panel:*)",
+      "Bash(cmux notify:*)"
+    ],
+    "deny": [
+      "Read(./.company-local.env)",
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./secrets/**)"
+    ]
+  },
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          { "type": "command", "command": "bash -c 'd=\"$PWD\"; while [ \"$d\" != \"/\" ] && [ ! -d \"$d/.company-kit\" ]; do d=\"$(dirname \"$d\")\"; done; if [ -d \"$d/.company-kit\" ]; then COMPANY_PROJECT_ROOT=\"$d\" bash \"$d/.company-kit/scripts/hooks/claude-userpromptsubmit-leader-wake.sh\"; fi'" },
+          { "type": "command", "command": "bash -c 'd=\"$PWD\"; while [ \"$d\" != \"/\" ] && [ ! -d \"$d/.company-kit\" ]; do d=\"$(dirname \"$d\")\"; done; if [ -d \"$d/.company-kit\" ]; then COMPANY_PROJECT_ROOT=\"$d\" bash \"$d/.company-kit/scripts/hooks/claude-userpromptsubmit-leader-identity.sh\"; fi'" }
+        ]
+      }
+    ]
+  }
+}

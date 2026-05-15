@@ -1,0 +1,224 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ai-company.local/schemas/compact-plan.schema.json",
+  "title": "Compact Plan Schema",
+  "$comment": "R13 5-B 동반 승격: R9 draft에서 운영 위치로 이동. R12 5-B (compact-result) 와 동일 원칙 — frontmatter.meta 식별자만 strict, 본문 섹션은 모두 optional + additionalProperties:true. 추가로 R9 draft의 role 별 evidence.minItems allOf 분기는 제거 — 검증기 미연결 단계에서 기계적 게이트는 일관성 깨지고, 워커별 minimum_distinct_kinds 는 이미 config/company.yaml + validate-evidence.sh 가 hard gate 로 처리하므로 schema 측 분기는 중복. evidence.type enum (repo/mcp/assumption) 도 풀어 자유 텍스트 허용 — R11 P2 자유 섹션 정신과 일관.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["frontmatter"],
+  "properties": {
+    "frontmatter": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["meta"],
+      "properties": {
+        "meta": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["session_id", "worker", "role", "plan_sha256", "created_at"],
+          "properties": {
+            "session_id": {
+              "type": "string",
+              "minLength": 3
+            },
+            "worker": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{1,63}$"
+            },
+            "role": {
+              "type": "string",
+              "minLength": 3,
+              "$comment": "왜: 허용 role 집합의 SSOT 는 worker-role-briefs.tsv 의 workers[].id 이고, schema 는 형식 최소치만 검증한다."
+            },
+            "plan_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$",
+              "$comment": "왜: plan↔result 1:1 매핑 핵심 키. compact-result.schema.json 의 동명 필드와 동일 의미."
+            },
+            "created_at": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        }
+      }
+    },
+    "goal": {
+      "type": "string",
+      "minLength": 30
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/step"
+      }
+    },
+    "outputs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/output"
+      }
+    },
+    "risks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/risk"
+      }
+    },
+    "questions": {
+      "oneOf": [
+        {
+          "const": "없음"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 2
+          }
+        }
+      ]
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/evidence"
+      }
+    },
+    "mcp_footprints": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/mcpFootprint"
+      }
+    },
+    "export_candidate_paths": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "definitions": {
+    "usedIn": {
+      "type": "string",
+      "enum": ["goal", "steps", "outputs", "risks", "questions"]
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "tool": {
+          "type": "string",
+          "minLength": 1
+        },
+        "action": {
+          "type": "string",
+          "minLength": 3
+        },
+        "target": {
+          "type": "string",
+          "minLength": 1
+        },
+        "owner": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 3
+        }
+      }
+    },
+    "risk": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "description": {
+          "type": "string",
+          "minLength": 3
+        },
+        "likelihood": {
+          "type": "string",
+          "$comment": "low/medium/high 권장이지만 enum 강제는 풀음 (R12 일관성)."
+        },
+        "mitigation": {
+          "type": "string",
+          "minLength": 3
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]{1,63}$"
+        },
+        "type": {
+          "type": "string",
+          "$comment": "R9 draft 는 repo/mcp/assumption enum 강제. R13 운영 승격 시 자유 텍스트로 완화 — R11 P2 자유 섹션 정신과 일관."
+        },
+        "ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "used_in": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/usedIn"
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "mcpFootprint": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]{1,63}$"
+        },
+        "tool": {
+          "type": "string",
+          "minLength": 1
+        },
+        "query": {
+          "type": "string",
+          "minLength": 1
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "used_in": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/usedIn"
+          },
+          "uniqueItems": true
+        },
+        "confidence": {
+          "type": "string",
+          "$comment": "low/medium/high 권장이지만 enum 강제는 풀음."
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,99 @@
+# auto-approve.yaml (v1.5.6)
+#
+# cmux-leader-watcher 가 워커 pane 의 권한 게이트를 자동 응답할지 결정하는
+# 화이트리스트. 게이트 텍스트(prompt 내용)를 키워드로 분류해, 안전한
+# read-only 행동만 자동으로 "1" 응답하고, 그 외에는 leader-wake 이벤트로
+# 사용자에게 위임한다.
+#
+# 정책:
+#   - 화이트리스트 매치 시 watcher 가 즉시 "1" + Enter 전송
+#   - 매치 안 되면 permission_gate_pending 이벤트 emit (사용자 직접 응답)
+#   - 안전한 default: 리스트가 비어있으면 모든 게이트는 사용자 응답
+#   - 환경변수 COMPANY_DISABLE_AUTO_APPROVE=1 로 전체 비활성화
+#
+# 매칭은 게이트 텍스트에 키워드가 substring 으로 포함되는지로 판정.
+
+enabled: true
+
+# 안전한 read-only 도구 호출 — 자동 승인
+# 주의: WebFetch / WebSearch 는 read-only 이지만 임의 도메인 접근이 가능하므로
+# 기본 화이트리스트에서 제외. 필요 시 .company-overrides/ 에서 추가.
+auto_approve_keywords:
+  - "Read("
+  - "Read tool"
+  - "Glob("
+  - "Glob tool"
+  - "Grep("
+  - "Grep tool"
+  - "LS("
+  - "list directory"
+  - "list files"
+  - "NotebookRead"
+
+# 명시적으로 자동 승인 금지 — 매치 시 즉시 leader-wake (화이트리스트 매치보다 우선)
+# v1.5.7: 토큰/시크릿 누출, 외부 write, 위험한 시스템 호출 차단 강화.
+deny_keywords:
+  # 파일 수정 / 실행 도구
+  - "Bash("
+  - "Edit("
+  - "Write("
+  - "MultiEdit"
+  - "NotebookEdit"
+  - "Task("
+  - "Agent("
+  # 외부 네트워크 도구 (도메인 검증 없이 자동 승인 위험)
+  - "WebFetch"
+  - "WebSearch"
+  # 위험한 시스템 명령
+  - "rm "
+  - "rm -"
+  - "sudo "
+  - "chmod 777"
+  - "curl http"
+  - "wget http"
+  - "nc -"
+  - "netcat"
+  # 파괴적 git 작업
+  - "git push"
+  - "git reset --hard"
+  - "git push --force"
+  - "git checkout ."
+  - "git restore ."
+  - "git clean -f"
+  - "branch -D"
+  # DB 파괴/대량 삭제
+  - "drop table"
+  - "drop database"
+  - "truncate table"
+  - "delete from"
+  - "DROP TABLE"
+  - "DROP DATABASE"
+  - "TRUNCATE"
+  # 시크릿 / 토큰 / 자격증명 (키워드 누출 차단)
+  - "secret"
+  - "credential"
+  - "api_key"
+  - "API_KEY"
+  - "ACCESS_TOKEN"
+  - "access_token"
+  - "BEARER"
+  - "password"
+  - "PASSWORD"
+  - "PRIVATE_KEY"
+  - "private_key"
+  - "SSH_KEY"
+  - ".pem"
+  - ".key"
+  - ".env"
+  - "GITHUB_TOKEN"
+  - "ANTHROPIC_API_KEY"
+  - "OPENAI_API_KEY"
+  - "AWS_SECRET"
+
+# 통계 및 안전장치
+limits:
+  # 같은 게이트 텍스트가 1분 내 N회 이상 반복되면 자동 승인 중지
+  # (loop 의심 — 워커가 같은 행동을 무한 반복하는 경우)
+  rate_limit_per_minute: 5
+  # 한 세션에서 자동 승인된 누적 횟수 상한 — 초과 시 leader-wake 강제
+  max_auto_approvals_per_session: 50

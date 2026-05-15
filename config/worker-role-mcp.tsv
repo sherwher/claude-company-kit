@@ -1,0 +1,227 @@
+strategy-planner	meta	-	minimum_call=3
+strategy-planner	preferred	mcp__claude_ai_Notion__notion-search	notion-search: 전략 플래너의 의사결정 근거 저장소입니다. 이 도구 없이는 이전 방향 결정·ROI 메모·우선순위 맥락을 추측으로 판단하여 전략 오염의 위험을 통제할 수 없습니다.
+strategy-planner	preferred	mcp__plugin_context7_context7__query-docs	context7 query-docs: 전략 플래너의 외부 규격·정책 참조 도구입니다. 이 도구 없이는 산업 표준·규제 맥락 없이 비용·리스크 판단을 추측으로 내려 근거 없는 계획의 위험을 통제할 수 없습니다.
+strategy-planner	preferred	mcp__plugin_oh-my-claudecode_t__ast_grep_search	ast_grep_search: 전략 플래너의 코드 기반 비용·리스크 탐색 도구입니다. 이 도구 없이는 기술 부채·의존성 범위를 추측으로 산정하여 전략 판단 품질이 저하될 위험을 통제할 수 없습니다.
+strategy-planner	prefetch	mcp__claude_ai_Notion__notion-search	전략 방향 ROI 우선순위 의사결정	직전 전략 결정 맥락 선점 로드
+strategy-planner	prefetch	mcp__plugin_context7_context7__query-docs	business strategy prioritization framework	외부 프레임워크 참조로 방향성 근거 보강
+strategy-planner	prefetch	mcp__plugin_oh-my-claudecode_t__ast_grep_search	cost budget dependency config	기술 비용 추정 근거 코드 식별
+strategy-planner	deferred	posthog	OAuth 유예||notion-search 로 내부 지표·실험 결과 메모 검색 + ast_grep_search 로 이벤트 전송 코드 위치 식별
+strategy-planner	deferred	stripe	OAuth 유예||notion-search 로 결제·수익 관련 의사결정 메모 + context7 query-docs 로 Stripe API 공식 사양 참조
+service-planner	meta	-	minimum_call=3
+service-planner	preferred	mcp__claude_ai_Notion__notion-search	notion-search: 서비스 플래너의 요구사항·정책 근거 저장소입니다. 이 도구 없이는 사용자 흐름·정책 예외 맥락을 추측으로 채워 요구사항 오염의 위험을 통제할 수 없습니다.
+service-planner	preferred	mcp__plugin_context7_context7__query-docs	context7 query-docs: 서비스 플래너의 UX 패턴·API 사양 참조 도구입니다. 이 도구 없이는 인터페이스 설계 근거 없이 기능 범위를 추측으로 결정하여 품질 저하의 위험을 통제할 수 없습니다.
+service-planner	preferred	mcp__plugin_oh-my-claudecode_t__ast_grep_search	ast_grep_search: 서비스 플래너의 기존 구현 범위 확인 도구입니다. 이 도구 없이는 중복 기능·기존 정책 코드를 발견하지 못해 범위 추측의 위험을 통제할 수 없습니다.
+service-planner	prefetch	mcp__claude_ai_Notion__notion-search	PRD 요구사항 정책 사용자 흐름 기능 범위	기존 기획 문서 선점 로드로 중복 정의 방지
+service-planner	prefetch	mcp__plugin_context7_context7__query-docs	user flow UX design pattern requirement specification	UX 패턴 참조로 기능 경계 근거 보강
+service-planner	prefetch	mcp__plugin_oh-my-claudecode_t__ast_grep_search	policy rule validation form flow	기존 정책·폼 흐름 코드 식별
+service-planner	deferred	posthog	OAuth 유예||notion-search 로 내부 제품 지표·사용자 피드백 메모 + ast_grep_search 로 이벤트 전송 코드 위치 식별
+service-planner	deferred	figma	OAuth 유예||notion-search 로 디자인 의사결정 메모 + context7 query-docs 로 컴포넌트 라이브러리 공식 문서 참조
+brainstormer	meta	-	minimum_call=3
+brainstormer	preferred	mcp__claude_ai_Notion__notion-search	notion-search: 브레인스토머의 아이디어 맥락 저장소입니다. 이 도구 없이는 이전 실험·피드백·대안 후보를 추측으로 복원하여 아이디에이션 오염의 위험을 통제할 수 없습니다.
+brainstormer	preferred	mcp__plugin_context7_context7__query-docs	context7 query-docs: 브레인스토머의 기술·시장 패턴 참조 도구입니다. 이 도구 없이는 대안 검토 시 외부 레퍼런스 없이 추측으로 찬반 논점을 구성하여 품질 저하의 위험을 통제할 수 없습니다.
+brainstormer	preferred	mcp__plugin_oh-my-claudecode_t__ast_grep_search	ast_grep_search: 브레인스토머의 기존 구현 대안 탐색 도구입니다. 이 도구 없이는 코드베이스 내 기존 패턴을 발견하지 못해 실현 가능성 판단을 추측으로 내려 오염의 위험을 통제할 수 없습니다.
+brainstormer	prefetch	mcp__claude_ai_Notion__notion-search	아이디어 실험 대안 후보 피드백 회고	이전 브레인스토밍 결과 선점 로드
+brainstormer	prefetch	mcp__plugin_context7_context7__query-docs	product alternatives innovation experiment patterns	외부 레퍼런스로 대안 품질 보강
+brainstormer	prefetch	mcp__plugin_oh-my-claudecode_t__ast_grep_search	feature flag experiment toggle variant	기존 실험 인프라 코드 식별
+brainstormer	deferred	posthog	OAuth 유예||notion-search 로 내부 실험·피드백 결과 메모 + ast_grep_search 로 이벤트 코드 위치 식별
+fullstack-architect	meta	-	minimum_call=3
+fullstack-architect	preferred	mcp__plugin_oh-my-claudecode_t__ast_grep_search	ast_grep_search: 풀스택 아키텍트의 코드 지형도입니다. 이 도구 없이는 프론트·백 경계 정의·데이터 흐름·의존성 범위를 추측으로 판단하여 아키텍처 오염의 위험을 통제할 수 없습니다.
+fullstack-architect	preferred	mcp__plugin_oh-my-claudecode_t__lsp_workspace_symbols	lsp_workspace_symbols: 풀스택 아키텍트의 심볼 전역 탐색 도구입니다. 이 도구 없이는 인터페이스·타입·계약 심볼을 추측으로 매핑하여 경계 오염의 위험을 통제할 수 없습니다.
+fullstack-architect	preferred	mcp__plugin_oh-my-claudecode_t__lsp_goto_definition	lsp_goto_definition: 풀스택 아키텍트의 정의 추적 도구입니다. 이 도구 없이는 API 계약·타입 원점을 추측으로 참조하여 설계 근거 없는 판단의 위험을 통제할 수 없습니다.
+fullstack-architect	preferred	mcp__plugin_context7_context7__query-docs	context7 query-docs: 풀스택 아키텍트의 공식 SDK·프레임워크 사양 참조 도구입니다. 이 도구 없이는 통합 설계 시 공식 계약 없이 추측으로 구조를 결정하여 품질 저하의 위험을 통제할 수 없습니다.
+fullstack-architect	prefetch	mcp__plugin_oh-my-claudecode_t__ast_grep_search	api route handler controller service repository	프론트·백 경계 패턴 식별
+fullstack-architect	prefetch	mcp__plugin_oh-my-claudecode_t__lsp_workspace_symbols	interface type contract schema	전역 타입 계약 심볼 선점 로드
+fullstack-architect	prefetch	mcp__plugin_context7_context7__query-docs	fullstack architecture API design system integration	통합 설계 공식 레퍼런스 확보
+fullstack-architect	deferred	posthog	OAuth 유예||notion-search 로 내부 제품 지표 메모 + ast_grep_search 로 이벤트 전송 코드 위치 식별
+fullstack-architect	deferred	sentry	OAuth 유예||ast_grep_search 로 repo 내 error handling / try-catch / panic 패턴 + context7 query-docs 로 프레임워크 공식 error taxonomy 참조
+frontend-engineer	meta	-	minimum_call=3
+frontend-engineer	preferred	mcp__plugin_oh-my-claudecode_t__ast_grep_search	ast_grep_search: 프론트엔드 엔지니어의 컴포넌트 구조 탐색 도구입니다. 이 도구 없이는 상태 흐름·재사용 경계·컴포넌트 의존성을 추측으로 판단하여 UI 오염의 위험을 통제할 수 없습니다.
+frontend-engineer	preferred	mcp__plugin_oh-my-claudecode_t__lsp_document_symbols	lsp_document_symbols: 프론트엔드 엔지니어의 파일 내 심볼 지도 도구입니다. 이 도구 없이는 컴포넌트 내부 구조·훅·이벤트 핸들러를 추측으로 매핑하여 재사용 경계 오염의 위험을 통제할 수 없습니다.
+frontend-engineer	preferred	mcp__plugin_context7_context7__query-docs	context7 query-docs: 프론트엔드 엔지니어의 프레임워크 공식 문서 참조 도구입니다. 이 도구 없이는 React·Next.js·상태관리 패턴을 추측으로 적용하여 품질 저하의 위험을 통제할 수 없습니다.
+frontend-engineer	preferred	mcp__pencil__batch_get	pencil batch_get: 프론트엔드 엔지니어의 디자인 시스템 근거 도구입니다. 이 도구 없이는 .pen 파일의 컴포넌트·레이아웃 정의를 추측으로 구현하여 디자인 오염의 위험을 통제할 수 없습니다.
+frontend-engineer	prefetch	mcp__plugin_oh-my-claudecode_t__ast_grep_search	useState useEffect component props interface	상태 흐름·컴포넌트 경계 패턴 식별
+frontend-engineer	prefetch	mcp__plugin_oh-my-claudecode_t__lsp_document_symbols	component hook handler	파일 내 심볼 구조 선점 로드
+frontend-engineer	prefetch	mcp__plugin_context7_context7__query-docs	React Next.js component state management pattern	프레임워크 공식 패턴 참조
+frontend-engineer	deferred	figma	OAuth 유예||pencil batch_get 으로 .pen 디자인 파일 직접 조회 + notion-search 로 디자인 의사결정 메모 참조
+frontend-engineer	deferred	posthog	OAuth 유예||notion-search 로 UI 이벤트·전환율 관련 지표 메모 + ast_grep_search 로 이벤트 전송 코드 위치 식별
+backend-engineer	meta	-	minimum_call=3
+backend-engineer	preferred	mcp__plugin_oh-my-claudecode_t__ast_grep_search	ast_grep_search: 백엔드 엔지니어의 코드 지형도입니다. 이 도구 없이는 retry 호출 / 트랜잭션 범위 / 미사용 catch 블록 같은 구조적 위험을 추측으로 판단하여 아키텍처 오염의 위험을 통제할 수 없습니다.
+backend-engineer	preferred	mcp__plugin_oh-my-claudecode_t__lsp_workspace_symbols	lsp_workspace_symbols: 백엔드 엔지니어의 전역 심볼 탐색 도구입니다. 이 도구 없이는 도메인 경계·인터페이스·타입 계약을 추측으로 매핑하여 API 오염의 위험을 통제할 수 없습니다.
+backend-engineer	preferred	mcp__plugin_oh-my-claudecode_t__lsp_find_references	lsp_find_references: 백엔드 엔지니어의 영향 범위 분석 도구입니다. 이 도구 없이는 API 변경·도메인 수정의 downstream 영향을 추측으로 판단하여 회귀 오염의 위험을 통제할 수 없습니다.
+backend-engineer	preferred	mcp__plugin_context7_context7__query-docs	context7 query-docs: 백엔드 엔지니어의 공식 SDK·프레임워크 사양 도구입니다. 이 도구 없이는 DB 트랜잭션·큐·인증 패턴을 추측으로 구현하여 P99 latency 품질 저하의 위험을 통제할 수 없습니다.
+backend-engineer	prefetch	mcp__plugin_oh-my-claudecode_t__ast_grep_search	retry transaction lock idempotency	도메인 실패 분기 및 멱등성 패턴 식별
+backend-engineer	prefetch	mcp__plugin_oh-my-claudecode_t__lsp_workspace_symbols	service repository domain interface	도메인 경계 심볼 선점 로드
+backend-engineer	prefetch	mcp__plugin_context7_context7__query-docs	database transaction queue auth backend pattern	공식 백엔드 패턴 참조로 설계 근거 확보
+backend-engineer	deferred	posthog	OAuth 유예||notion-search 로 내부 제품 지표 메모 + ast_grep_search 로 이벤트 전송 코드 위치 식별
+backend-engineer	deferred	sentry	OAuth 유예||ast_grep_search 로 repo 내 error handling / panic / catch block 패턴 검색 + context7 query-docs 로 언어/프레임워크 공식 error taxonomy 참조
+backend-engineer	deferred	stripe	OAuth 유예||context7 query-docs 로 Stripe API 공식 사양 참조 + ast_grep_search 로 결제 관련 도메인 코드 구조 식별
+data-analyst	meta	-	minimum_call=3
+data-analyst	preferred	mcp__claude_ai_Notion__notion-search	notion-search: 데이터 애널리스트의 지표 정의·실험 결과 저장소입니다. 이 도구 없이는 기존 지표 맥락·실험 설계 근거를 추측으로 채워 측정 오염의 위험을 통제할 수 없습니다.
+data-analyst	preferred	mcp__plugin_oh-my-claudecode_t__ast_grep_search	ast_grep_search: 데이터 애널리스트의 이벤트 추적 코드 탐색 도구입니다. 이 도구 없이는 실제 이벤트 전송 코드 위치·파라미터를 추측으로 파악하여 지표 신뢰도 품질 저하의 위험을 통제할 수 없습니다.
+data-analyst	preferred	mcp__plugin_context7_context7__query-docs	context7 query-docs: 데이터 애널리스트의 실험 설계·통계 방법론 참조 도구입니다. 이 도구 없이는 A/B 설계·샘플 크기 계산 근거 없이 추측으로 실험안을 구성하여 품질 저하의 위험을 통제할 수 없습니다.
+data-analyst	prefetch	mcp__claude_ai_Notion__notion-search	지표 정의 실험 결과 funnel retention 대시보드	기존 지표 정의·실험 결과 선점 로드
+data-analyst	prefetch	mcp__plugin_oh-my-claudecode_t__ast_grep_search	track event analytics posthog mixpanel amplitude	이벤트 전송 코드 위치 및 파라미터 식별
+data-analyst	prefetch	mcp__plugin_context7_context7__query-docs	A/B test experiment design sample size statistical significance	실험 설계 공식 방법론 참조
+data-analyst	deferred	posthog	OAuth 유예||notion-search 로 내부 제품 지표 메모 + ast_grep_search 로 이벤트 전송 코드 위치 식별
+growth-marketer	meta	-	minimum_call=3
+growth-marketer	preferred	mcp__claude_ai_Notion__notion-search	notion-search: 그로스 마케터의 캠페인·리텐션 전략 저장소입니다. 이 도구 없이는 이전 메시지 실험·채널 성과 맥락을 추측으로 채워 전략 오염의 위험을 통제할 수 없습니다.
+growth-marketer	preferred	mcp__plugin_context7_context7__query-docs	context7 query-docs: 그로스 마케터의 채널·CRM·SEO 공식 사양 참조 도구입니다. 이 도구 없이는 성장 전략 설계 시 공식 근거 없이 추측으로 채널을 선택하여 품질 저하의 위험을 통제할 수 없습니다.
+growth-marketer	preferred	mcp__plugin_oh-my-claudecode_t__ast_grep_search	ast_grep_search: 그로스 마케터의 이벤트·전환 코드 탐색 도구입니다. 이 도구 없이는 실제 구현된 전환 경로·리텐션 트리거를 추측으로 파악하여 캠페인 오염의 위험을 통제할 수 없습니다.
+growth-marketer	prefetch	mcp__claude_ai_Notion__notion-search	캠페인 메시지 채널 리텐션 유입 전환율	이전 캠페인·채널 성과 선점 로드
+growth-marketer	prefetch	mcp__plugin_context7_context7__query-docs	growth marketing retention CRM campaign channel SEO	채널·CRM 공식 패턴 참조
+growth-marketer	prefetch	mcp__plugin_oh-my-claudecode_t__ast_grep_search	conversion retention trigger notification email push	전환·리텐션 트리거 코드 위치 식별
+growth-marketer	deferred	posthog	OAuth 유예||notion-search 로 내부 제품 지표·실험 결과 메모 + ast_grep_search 로 이벤트 전송 코드 위치 식별
+risk-reviewer	meta	-	minimum_call=3
+risk-reviewer	preferred	mcp__plugin_semgrep-plugin_semgrep__semgrep_scan	semgrep_scan: 리스크 리뷰어의 정적 취약점 탐지 도구입니다. 이 도구 없이는 개인정보 노출·인증 우회·주입 취약점을 추측으로 판단하여 법적 리스크 오염의 위험을 통제할 수 없습니다.
+risk-reviewer	preferred	mcp__plugin_oh-my-claudecode_t__ast_grep_search	ast_grep_search: 리스크 리뷰어의 보안 패턴 탐색 도구입니다. 이 도구 없이는 민감 데이터 처리·권한 검사·로깅 패턴을 추측으로 파악하여 컴플라이언스 오염의 위험을 통제할 수 없습니다.
+risk-reviewer	preferred	mcp__claude_ai_Notion__notion-search	notion-search: 리스크 리뷰어의 법무·정책 근거 저장소입니다. 이 도구 없이는 기존 컴플라이언스 결정·외부 자문 결과를 추측으로 참조하여 리스크 판단 품질 저하의 위험을 통제할 수 없습니다.
+risk-reviewer	preferred	mcp__plugin_context7_context7__query-docs	context7 query-docs: 리스크 리뷰어의 규제·표준 참조 도구입니다. 이 도구 없이는 GDPR·개인정보보호법·보안 표준을 추측으로 해석하여 법적 오염의 위험을 통제할 수 없습니다.
+risk-reviewer	prefetch	mcp__plugin_semgrep-plugin_semgrep__semgrep_scan	security privacy injection auth	취약점 자동 탐지 선제 실행
+risk-reviewer	prefetch	mcp__plugin_oh-my-claudecode_t__ast_grep_search	personal data password token secret encrypt	민감 데이터 처리 코드 위치 식별
+risk-reviewer	prefetch	mcp__claude_ai_Notion__notion-search	법무 컴플라이언스 개인정보 정책 계약 리스크	기존 법무·정책 결정 맥락 선점 로드
+risk-reviewer	deferred	sentry	OAuth 유예||ast_grep_search 로 repo 내 error handling / exception / catch 패턴 검색 + context7 query-docs 로 언어/프레임워크 공식 error taxonomy 참조
+proposal-writer	meta	-	minimum_call=3
+proposal-writer	preferred	mcp__claude_ai_Notion__notion-search	notion-search: 제안서 작성자의 근거·차별점 저장소입니다. 이 도구 없이는 제안 맥락·이전 RFP 결과·심사 기준을 추측으로 채워 제안서 오염의 위험을 통제할 수 없습니다.
+proposal-writer	preferred	mcp__plugin_context7_context7__query-docs	context7 query-docs: 제안서 작성자의 외부 규격·공공 입찰 기준 참조 도구입니다. 이 도구 없이는 제출 요건·평가 기준을 추측으로 해석하여 제안서 품질 저하의 위험을 통제할 수 없습니다.
+proposal-writer	preferred	mcp__plugin_oh-my-claudecode_t__ast_grep_search	ast_grep_search: 제안서 작성자의 기술 구현 근거 탐색 도구입니다. 이 도구 없이는 실제 구현 범위·기술 스택 증거를 추측으로 기술하여 제안서 신뢰도 오염의 위험을 통제할 수 없습니다.
+proposal-writer	prefetch	mcp__claude_ai_Notion__notion-search	제안서 RFP 입찰 차별점 평가 기준 요구사항	제안 맥락 및 이전 RFP 결과 선점 로드
+proposal-writer	prefetch	mcp__plugin_context7_context7__query-docs	proposal RFP bid requirements evaluation criteria public sector	공공 입찰 기준 공식 참조
+proposal-writer	prefetch	mcp__plugin_oh-my-claudecode_t__ast_grep_search	feature implementation stack architecture	기술 구현 증거 코드 식별
+proposal-writer	deferred	figma	OAuth 유예||pencil batch_get 으로 .pen 디자인 파일 조회 + notion-search 로 디자인 의사결정 메모 참조
+proposal-writer	deferred	stripe	OAuth 유예||context7 query-docs 로 결제 API 공식 사양 참조 + notion-search 로 결제 관련 의사결정 메모 검색
+qa-reviewer	meta	-	minimum_call=3
+qa-reviewer	preferred	mcp__plugin_oh-my-claudecode_t__ast_grep_search	ast_grep_search: QA 리뷰어의 코드 기반 시나리오 탐색 도구입니다. 이 도구 없이는 회귀 위험 경로·엣지 케이스·예외 처리를 추측으로 파악하여 검증 오염의 위험을 통제할 수 없습니다.
+qa-reviewer	preferred	mcp__plugin_semgrep-plugin_semgrep__semgrep_scan	semgrep_scan: QA 리뷰어의 정적 회귀 탐지 도구입니다. 이 도구 없이는 코드 변경으로 인한 취약점·패턴 회귀를 추측으로 판단하여 acceptance 기준 오염의 위험을 통제할 수 없습니다.
+qa-reviewer	preferred	mcp__plugin_oh-my-claudecode_t__lsp_find_references	lsp_find_references: QA 리뷰어의 변경 영향 범위 분석 도구입니다. 이 도구 없이는 테스트 대상 코드의 호출 관계·의존성을 추측으로 파악하여 회귀 매트릭스 품질 저하의 위험을 통제할 수 없습니다.
+qa-reviewer	preferred	mcp__plugin_context7_context7__query-docs	context7 query-docs: QA 리뷰어의 테스트 패턴·acceptance 기준 참조 도구입니다. 이 도구 없이는 테스트 설계 근거 없이 추측으로 시나리오를 구성하여 품질 저하의 위험을 통제할 수 없습니다.
+qa-reviewer	prefetch	mcp__plugin_oh-my-claudecode_t__ast_grep_search	test spec describe it expect assert mock	기존 테스트 패턴 및 커버리지 공백 식별
+qa-reviewer	prefetch	mcp__plugin_semgrep-plugin_semgrep__semgrep_scan	security regression pattern	정적 회귀 위험 선제 탐지
+qa-reviewer	prefetch	mcp__plugin_oh-my-claudecode_t__lsp_find_references	changed function method class	변경 대상 코드의 downstream 영향 범위 식별
+qa-reviewer	deferred	playwright	미등록 유예||ast_grep_search 로 기존 e2e/integration 테스트 코드 위치 식별 + context7 query-docs 로 Playwright 공식 테스트 패턴 참조
+qa-reviewer	deferred	sentry	OAuth 유예||ast_grep_search 로 repo 내 error handling / catch / exception 패턴 검색 + lsp_find_references 로 에러 전파 경로 추적
+ux-researcher	meta	-	minimum_call=3
+ux-researcher	preferred	mcp__plugin_context7_context7__query-docs	context7 query-docs: UX 리서처의 방법론·업계 benchmark·경쟁사 UX pattern 참조 도구입니다. 이 도구 없이는 리서치 방법 선택을 추측으로 판단하여 의사결정 오염의 위험을 통제할 수 없습니다.
+ux-researcher	preferred	mcp__plugin_oh-my-claudecode_t__session_search	session_search: UX 리서처의 과거 리서치 기록·synthesis 이력 조회 도구입니다. 이 도구 없이는 매 리서치를 첫 리서치로 시작하여 중복 조사의 위험을 통제할 수 없습니다.
+ux-researcher	preferred	mcp__plugin_oh-my-claudecode_t__notepad_write_priority	notepad_write_priority: UX 리서처의 insight 기록 도구입니다. 이 도구 없이는 synthesis matrix · confidence tagging 을 임시 메모에 흩뿌려 조직 기억 구축의 위험을 통제할 수 없습니다.
+ux-researcher	preferred	mcp__plugin_oh-my-claudecode_t__notepad_read	notepad_read: UX 리서처의 이전 세션 insight 조회 도구입니다. 이 도구 없이는 recommendation owner tracking 을 추측으로 판단하여 리서치-의사결정 연결성 오염의 위험을 통제할 수 없습니다.
+ux-researcher	prefetch	mcp__plugin_context7_context7__query-docs	user research interview protocol usability testing WCAG accessibility	리서치 방법론·가이드라인 참조 선점
+ux-researcher	prefetch	mcp__plugin_oh-my-claudecode_t__session_search	research insight synthesis recommendation	과거 리서치 이력 및 recommendation 상태 조회
+ux-researcher	prefetch	mcp__plugin_oh-my-claudecode_t__notepad_read	ux-research	리서치 메모 프리로드
+ux-researcher	deferred	posthog	OAuth 유예||notepad_read 로 analytics 관련 수동 메모 조회 + context7 query-docs 로 product analytics 방법론 참조
+ux-researcher	deferred	figma	OAuth 유예||notepad 로 프로토타입 테스트 결과 수동 기록 + session_search 로 이전 usability 테스트 이력 참조
+ux-designer	meta	-	minimum_call=3
+ux-designer	preferred	mcp__pencil__batch_get	pencil batch_get: UX 디자이너의 .pen 디자인 파일 조회 도구입니다. 이 도구 없이는 컴포넌트 구조·레이아웃·state variant 를 추측으로 판단하여 design drift 의 위험을 통제할 수 없습니다.
+ux-designer	preferred	mcp__plugin_context7_context7__query-docs	context7 query-docs: UX 디자이너의 WCAG·HIG·Material·디자인 시스템 가이드라인 참조 도구입니다. 이 도구 없이는 accessibility 기준·상호작용 패턴을 주관으로 판단하여 품질 저하의 위험을 통제할 수 없습니다.
+ux-designer	preferred	mcp__pencil__batch_design	pencil batch_design: UX 디자이너의 .pen 파일 편집 도구입니다. 이 도구 없이는 state matrix · component variant 를 파일 외부에 흩뿌려 SSOT 오염의 위험을 통제할 수 없습니다.
+ux-designer	preferred	mcp__plugin_oh-my-claudecode_t__notepad_write_priority	notepad_write_priority: UX 디자이너의 interaction spec · handoff annotation 기록 도구입니다. 이 도구 없이는 frontend-engineer 로의 handoff 를 임시 메모로 대체하여 구현 drift 의 위험을 통제할 수 없습니다.
+ux-designer	prefetch	mcp__pencil__batch_get	component state variant	.pen 디자인 파일의 기존 컴포넌트·variant 구조 선점
+ux-designer	prefetch	mcp__plugin_context7_context7__query-docs	WCAG ARIA keyboard navigation design system tokens	접근성 · 디자인 시스템 가이드라인 참조
+ux-designer	deferred	figma	OAuth 유예||pencil batch_get 으로 .pen 디자인 파일 직접 조회 + notepad_read 로 디자인 의사결정 메모 참조
+ux-designer	deferred	playwright	미등록 유예||notepad 로 live UX 관찰 메모 기록 + context7 query-docs 로 interaction 패턴 참조
+content-strategist	meta	-	minimum_call=3
+content-strategist	preferred	mcp__plugin_context7_context7__query-docs	context7 query-docs: 콘텐츠 전략가의 관례·금지어·업계 benchmark·regulatory 문구 참조 도구입니다. 이 도구 없이는 voice & tone 결정을 주관으로 판단하여 brand drift 의 위험을 통제할 수 없습니다.
+content-strategist	preferred	mcp__plugin_oh-my-claudecode_t__notepad_write_priority	notepad_write_priority: 콘텐츠 전략가의 copy SSOT 기록 도구입니다. 이 도구 없이는 동일 메시지가 landing/email/in-app 에 drift 되어 SSOT 오염의 위험을 통제할 수 없습니다.
+content-strategist	preferred	mcp__plugin_oh-my-claudecode_t__session_search	session_search: 콘텐츠 전략가의 과거 copy 이력·A/B 결과 조회 도구입니다. 이 도구 없이는 매 세션을 새 브랜드로 시작하여 brand voice 오염의 위험을 통제할 수 없습니다.
+content-strategist	preferred	mcp__plugin_oh-my-claudecode_t__notepad_read	notepad_read: 콘텐츠 전략가의 기존 brand dictionary · voice guide 조회 도구입니다. 이 도구 없이는 single term per concept 규칙을 유지할 수 없어 synonym drift 의 위험을 통제할 수 없습니다.
+content-strategist	prefetch	mcp__plugin_context7_context7__query-docs	copy style guide voice tone microcopy error message	업계 카피 가이드·관례 참조 선점
+content-strategist	prefetch	mcp__plugin_oh-my-claudecode_t__notepad_read	brand voice copy ssot	기존 copy SSOT · brand dictionary 프리로드
+content-strategist	deferred	posthog	OAuth 유예||notepad_read 로 기존 A/B 결과 메모 조회 + context7 query-docs 로 conversion-optimized copy 패턴 참조
+content-strategist	deferred	notion	OAuth 유예 (workspace 개별 인증)||notepad 로 copy SSOT 를 harness 내부 메모로 대체 + session_search 로 이전 카피 이력 추적
+graphic-designer	meta	-	minimum_call=3
+graphic-designer	preferred	mcp__pencil__batch_get	pencil batch_get: 그래픽 디자이너의 .pen 브랜드 자산·디자인 시스템 조회 도구입니다. 이 도구 없이는 brand token·기존 key visual 을 추측으로 판단하여 token drift 의 위험을 통제할 수 없습니다.
+graphic-designer	preferred	mcp__pencil__batch_design	pencil batch_design: 그래픽 디자이너의 .pen 파일 편집 도구입니다. 이 도구 없이는 master file·derivative 구조를 파일 외부에 흩뿌려 SSOT 오염의 위험을 통제할 수 없습니다.
+graphic-designer	preferred	mcp__plugin_context7_context7__query-docs	context7 query-docs: 그래픽 디자이너의 타이포·컬러이론·경쟁사 branding case·폰트 라이선스 참조 도구입니다. 이 도구 없이는 brand system 결정을 주관으로 판단하여 license 위반의 위험을 통제할 수 없습니다.
+graphic-designer	preferred	mcp__plugin_oh-my-claudecode_t__notepad_write_priority	notepad_write_priority: 그래픽 디자이너의 brand guideline delta · license audit log 기록 도구입니다. 이 도구 없이는 brand 변경 이력을 임시 메모로 대체하여 조직 자산 drift 의 위험을 통제할 수 없습니다.
+graphic-designer	prefetch	mcp__pencil__batch_get	brand token color typography	.pen 브랜드 파일의 기존 token · key visual 선점
+graphic-designer	prefetch	mcp__plugin_context7_context7__query-docs	font license typography accessibility WCAG contrast brand system	타이포·라이선스·접근성 기준 참조
+graphic-designer	deferred	figma	OAuth 유예||pencil batch_get/batch_design 으로 .pen 디자인 파일 직접 조회·편집 + notepad 로 asset matrix 기록
+graphic-designer	deferred	posthog	OAuth 유예||notepad_read 로 기존 캠페인 A/B 결과 메모 조회 + context7 query-docs 로 visual A/B 패턴 참조
+game-director	meta	-	minimum_call=3
+game-director	preferred	mcp__claude_ai_Notion__notion-search	notion-search: 게임 디렉터의 마일스톤·크리에이티브 결정 저장소입니다. 이 도구 없이는 이전 방향 결정을 추측으로 판단하여 프로덕션 오염의 위험을 통제할 수 없습니다.
+game-director	preferred	mcp__plugin_context7_context7__query-docs	context7 query-docs: 게임 디렉터의 게임 엔진·프로덕션 방법론 참조 도구입니다. 이 도구 없이는 프로덕션 파이프라인·엔진 제약을 추측으로 판단하여 마일스톤 품질 저하의 위험을 통제할 수 없습니다.
+game-director	preferred	mcp__plugin_oh-my-claudecode_t__ast_grep_search	ast_grep_search: 게임 디렉터의 프로젝트 구조 탐색 도구입니다. 이 도구 없이는 모듈 경계·의존성 범위를 추측으로 파악하여 프로덕션 오염의 위험을 통제할 수 없습니다.
+game-director	prefetch	mcp__claude_ai_Notion__notion-search	게임 프로덕션 마일스톤 크리에이티브 방향	기존 프로덕션 결정 맥락 선점 로드
+game-director	prefetch	mcp__plugin_context7_context7__query-docs	game production pipeline milestone management	프로덕션 방법론 참조
+game-director	prefetch	mcp__plugin_oh-my-claudecode_t__ast_grep_search	game config milestone schedule	프로젝트 구조 식별
+game-director	deferred	posthog	OAuth 유예||notion-search 로 내부 플레이테스트 결과 메모 + ast_grep_search 로 이벤트 코드 식별
+game-designer	meta	-	minimum_call=3
+game-designer	preferred	mcp__claude_ai_Notion__notion-search	notion-search: 게임 디자이너의 GDD·시스템 설계 저장소입니다. 이 도구 없이는 기존 시스템 설계·밸런스 결정을 추측으로 판단하여 GDD 오염의 위험을 통제할 수 없습니다.
+game-designer	preferred	mcp__plugin_context7_context7__query-docs	context7 query-docs: 게임 디자인 패턴·밸런싱 참조 도구입니다. 이 도구 없이는 코어 루프·이코노미 설계 근거 없이 추측으로 시스템을 구성하여 품질 저하의 위험을 통제할 수 없습니다.
+game-designer	preferred	mcp__plugin_oh-my-claudecode_t__ast_grep_search	ast_grep_search: 기존 게임 시스템 코드 탐색 도구입니다. 이 도구 없이는 기존 메카닉·밸런스 코드를 발견하지 못해 시스템 설계를 추측으로 내려 오염의 위험을 통제할 수 없습니다.
+game-designer	prefetch	mcp__claude_ai_Notion__notion-search	GDD 시스템 설계 밸런싱 이코노미	기존 설계 문서 선점 로드
+game-designer	prefetch	mcp__plugin_context7_context7__query-docs	game design document system balance economy	게임 디자인 패턴 참조
+game-designer	prefetch	mcp__plugin_oh-my-claudecode_t__ast_grep_search	game system mechanic balance config	기존 시스템 코드 식별
+game-designer	deferred	posthog	OAuth 유예||notion-search 로 플레이테스트 피드백 메모 + ast_grep_search 로 밸런스 데이터 코드 식별
+level-designer	meta	-	minimum_call=3
+level-designer	preferred	mcp__claude_ai_Notion__notion-search	notion-search: 레벨 디자이너의 레벨 설계 문서 저장소입니다. 이 도구 없이는 기존 레벨 구조·인카운터 설계를 추측으로 판단하여 레벨 설계 오염의 위험을 통제할 수 없습니다.
+level-designer	preferred	mcp__plugin_context7_context7__query-docs	context7 query-docs: 레벨 디자인 패턴 참조 도구입니다. 이 도구 없이는 페이싱·환경 퍼즐 설계 근거 없이 추측으로 레벨을 구성하여 품질 저하의 위험을 통제할 수 없습니다.
+level-designer	preferred	mcp__plugin_oh-my-claudecode_t__ast_grep_search	ast_grep_search: 레벨 데이터·맵 구조 코드 탐색 도구입니다. 이 도구 없이는 기존 맵·스폰 데이터를 발견하지 못해 레벨 구조를 추측으로 설계하여 오염의 위험을 통제할 수 없습니다.
+level-designer	prefetch	mcp__claude_ai_Notion__notion-search	레벨 디자인 인카운터 페이싱 맵	기존 레벨 설계 문서 선점 로드
+level-designer	prefetch	mcp__plugin_context7_context7__query-docs	level design encounter pacing environment puzzle	레벨 디자인 방법론 참조
+level-designer	prefetch	mcp__plugin_oh-my-claudecode_t__ast_grep_search	level map encounter spawn	레벨 데이터 코드 식별
+level-designer	deferred	posthog	OAuth 유예||notion-search 로 플레이테스트 히트맵 메모 검색
+narrative-designer	meta	-	minimum_call=3
+narrative-designer	preferred	mcp__claude_ai_Notion__notion-search	notion-search: 내러티브 디자이너의 스토리·로어 문서 저장소입니다. 이 도구 없이는 기존 세계관·스토리 결정을 추측으로 판단하여 내러티브 오염의 위험을 통제할 수 없습니다.
+narrative-designer	preferred	mcp__plugin_context7_context7__query-docs	context7 query-docs: 내러티브 디자인 패턴·다이얼로그 시스템 참조 도구입니다. 이 도구 없이는 분기 구조·다이얼로그 패턴을 추측으로 설계하여 서사 품질 저하의 위험을 통제할 수 없습니다.
+narrative-designer	preferred	mcp__plugin_oh-my-claudecode_t__ast_grep_search	ast_grep_search: 다이얼로그·스토리 데이터 코드 탐색 도구입니다. 이 도구 없이는 기존 퀘스트·다이얼로그 데이터를 발견하지 못해 서사를 추측으로 구성하여 오염의 위험을 통제할 수 없습니다.
+narrative-designer	prefetch	mcp__claude_ai_Notion__notion-search	스토리 내러티브 다이얼로그 로어 월드빌딩	기존 서사 문서 선점 로드
+narrative-designer	prefetch	mcp__plugin_context7_context7__query-docs	narrative design dialogue tree branching story worldbuilding	내러티브 디자인 방법론 참조
+narrative-designer	prefetch	mcp__plugin_oh-my-claudecode_t__ast_grep_search	dialogue story quest narrative	서사 데이터 코드 식별
+narrative-designer	deferred	posthog	OAuth 유예||notion-search 로 플레이어 선택 분석 메모 검색
+game-programmer	meta	-	minimum_call=3
+game-programmer	preferred	mcp__plugin_oh-my-claudecode_t__ast_grep_search	ast_grep_search: 게임 프로그래머의 코드 구조 탐색 핵심 도구입니다. 이 도구 없이는 게임플레이 로직·물리·AI 구조를 추측으로 파악하여 아키텍처 오염의 위험을 통제할 수 없습니다.
+game-programmer	preferred	mcp__plugin_context7_context7__query-docs	context7 query-docs: 게임 엔진 API·네트워킹 프로토콜 참조 도구입니다. 이 도구 없이는 엔진 API·네트워크 패턴을 추측으로 구현하여 품질 저하의 위험을 통제할 수 없습니다.
+game-programmer	preferred	mcp__claude_ai_Notion__notion-search	notion-search: 기술 설계 결정 문서 저장소입니다. 이 도구 없이는 기존 기술 결정·성능 기준을 추측으로 판단하여 설계 오염의 위험을 통제할 수 없습니다.
+game-programmer	prefetch	mcp__plugin_oh-my-claudecode_t__ast_grep_search	gameplay controller manager system	게임플레이 코드 구조 식별
+game-programmer	prefetch	mcp__plugin_context7_context7__query-docs	game programming architecture networking physics AI	게임 프로그래밍 패턴 참조
+game-programmer	prefetch	mcp__claude_ai_Notion__notion-search	게임 아키텍처 기술 설계 네트워킹	기존 기술 결정 맥락 로드
+game-programmer	deferred	posthog	OAuth 유예||ast_grep_search 로 성능 로깅 코드 식별 + notion-search 로 성능 벤치마크 메모 검색
+unity-engineer	meta	-	minimum_call=3
+unity-engineer	preferred	mcp__plugin_oh-my-claudecode_t__ast_grep_search	ast_grep_search: Unity C# 코드 구조 탐색 핵심 도구입니다. 이 도구 없이는 MonoBehaviour·ScriptableObject 구조를 추측으로 파악하여 아키텍처 오염의 위험을 통제할 수 없습니다.
+unity-engineer	preferred	mcp__plugin_context7_context7__query-docs	context7 query-docs: Unity API·DOTS·URP 공식 문서 참조 도구입니다. 이 도구 없이는 엔진 API·렌더 파이프라인을 추측으로 사용하여 품질 저하의 위험을 통제할 수 없습니다.
+unity-engineer	preferred	mcp__claude_ai_Notion__notion-search	notion-search: Unity 프로젝트 설정·결정 문서 저장소입니다. 이 도구 없이는 기존 엔진 설정·기술 결정을 추측으로 판단하여 프로젝트 오염의 위험을 통제할 수 없습니다.
+unity-engineer	prefetch	mcp__plugin_oh-my-claudecode_t__ast_grep_search	MonoBehaviour ScriptableObject Component	Unity 컴포넌트 구조 식별
+unity-engineer	prefetch	mcp__plugin_context7_context7__query-docs	Unity DOTS URP HDRP Addressables ScriptableObject	Unity API 참조
+unity-engineer	prefetch	mcp__claude_ai_Notion__notion-search	Unity 프로젝트 구조 엔진 설정	기존 Unity 설정 맥락 로드
+unity-engineer	deferred	posthog	OAuth 유예||ast_grep_search 로 성능 프로파일링 코드 식별
+unreal-engineer	meta	-	minimum_call=3
+unreal-engineer	preferred	mcp__plugin_oh-my-claudecode_t__ast_grep_search	ast_grep_search: UE5 C++/Blueprint 코드 구조 탐색 핵심 도구입니다. 이 도구 없이는 GAS·렌더링 파이프라인 구조를 추측으로 파악하여 아키텍처 오염의 위험을 통제할 수 없습니다.
+unreal-engineer	preferred	mcp__plugin_context7_context7__query-docs	context7 query-docs: UE5 API·GAS·Nanite·Lumen 공식 문서 참조 도구입니다. 이 도구 없이는 엔진 API·렌더링 기술을 추측으로 사용하여 품질 저하의 위험을 통제할 수 없습니다.
+unreal-engineer	preferred	mcp__claude_ai_Notion__notion-search	notion-search: UE5 프로젝트 설정·결정 문서 저장소입니다. 이 도구 없이는 기존 엔진 설정·기술 결정을 추측으로 판단하여 프로젝트 오염의 위험을 통제할 수 없습니다.
+unreal-engineer	prefetch	mcp__plugin_oh-my-claudecode_t__ast_grep_search	UObject AActor UGameplayAbility	UE5 코드 구조 식별
+unreal-engineer	prefetch	mcp__plugin_context7_context7__query-docs	Unreal Engine 5 GAS Nanite Lumen Blueprint C++	UE5 API 참조
+unreal-engineer	prefetch	mcp__claude_ai_Notion__notion-search	Unreal 프로젝트 구조 엔진 설정	기존 UE5 설정 맥락 로드
+unreal-engineer	deferred	posthog	OAuth 유예||ast_grep_search 로 성능 프로파일링 코드 식별
+game-artist	meta	-	minimum_call=3
+game-artist	preferred	mcp__claude_ai_Notion__notion-search	notion-search: 게임 아티스트의 아트 스펙·스타일 가이드 저장소입니다. 이 도구 없이는 기존 아트 스타일·에셋 스펙을 추측으로 판단하여 비주얼 오염의 위험을 통제할 수 없습니다.
+game-artist	preferred	mcp__plugin_context7_context7__query-docs	context7 query-docs: 3D 모델링·애니메이션·VFX 기술 참조 도구입니다. 이 도구 없이는 에셋 제작 기술·파이프라인 규격을 추측으로 적용하여 품질 저하의 위험을 통제할 수 없습니다.
+game-artist	preferred	mcp__plugin_oh-my-claudecode_t__ast_grep_search	ast_grep_search: 에셋 파이프라인·임포트 설정 코드 탐색 도구입니다. 이 도구 없이는 기존 임포트·머티리얼 설정을 발견하지 못해 에셋 구성을 추측으로 설계하여 오염의 위험을 통제할 수 없습니다.
+game-artist	prefetch	mcp__claude_ai_Notion__notion-search	게임 아트 스타일 가이드 에셋 스펙	기존 아트 문서 선점 로드
+game-artist	prefetch	mcp__plugin_context7_context7__query-docs	game art pipeline 3D modeling animation VFX asset specification	아트 파이프라인 기술 참조
+game-artist	prefetch	mcp__plugin_oh-my-claudecode_t__ast_grep_search	asset import texture material mesh	에셋 파이프라인 코드 식별
+game-artist	deferred	figma	OAuth 유예||pencil batch_get 으로 .pen 디자인 파일 조회 + notepad 로 아트 스펙 기록
+game-artist	deferred	posthog	OAuth 유예||notion-search 로 플레이테스트 시각 피드백 메모 검색
+technical-artist	meta	-	minimum_call=3
+technical-artist	preferred	mcp__plugin_oh-my-claudecode_t__ast_grep_search	ast_grep_search: 테크니컬 아티스트의 셰이더·렌더 파이프라인 코드 탐색 핵심 도구입니다. 이 도구 없이는 셰이더·LOD·렌더링 구조를 추측으로 파악하여 파이프라인 오염의 위험을 통제할 수 없습니다.
+technical-artist	preferred	mcp__plugin_context7_context7__query-docs	context7 query-docs: 셰이더 언어·렌더링 기술 참조 도구입니다. 이 도구 없이는 셰이더 문법·렌더링 기법을 추측으로 적용하여 품질 저하의 위험을 통제할 수 없습니다.
+technical-artist	preferred	mcp__claude_ai_Notion__notion-search	notion-search: 아트-테크 파이프라인 결정 문서 저장소입니다. 이 도구 없이는 기존 파이프라인 결정·성능 예산을 추측으로 판단하여 아트-테크 오염의 위험을 통제할 수 없습니다.
+technical-artist	prefetch	mcp__plugin_oh-my-claudecode_t__ast_grep_search	shader material render LOD	셰이더·렌더링 코드 식별
+technical-artist	prefetch	mcp__plugin_context7_context7__query-docs	shader programming render pipeline optimization LOD GPU	렌더링 기술 참조
+technical-artist	prefetch	mcp__claude_ai_Notion__notion-search	셰이더 렌더 파이프라인 최적화 아트 테크	기존 기술 결정 맥락 로드
+technical-artist	deferred	posthog	OAuth 유예||ast_grep_search 로 성능 프로파일링 코드 식별
+game-audio	meta	-	minimum_call=3
+game-audio	preferred	mcp__claude_ai_Notion__notion-search	notion-search: 게임 오디오의 사운드 설계·음악 방향 문서 저장소입니다. 이 도구 없이는 기존 사운드 설계·음악 방향을 추측으로 판단하여 오디오 오염의 위험을 통제할 수 없습니다.
+game-audio	preferred	mcp__plugin_context7_context7__query-docs	context7 query-docs: FMOD·Wwise·오디오 미들웨어 참조 도구입니다. 이 도구 없이는 오디오 미들웨어 API·적응형 사운드 패턴을 추측으로 구현하여 품질 저하의 위험을 통제할 수 없습니다.
+game-audio	preferred	mcp__plugin_oh-my-claudecode_t__ast_grep_search	ast_grep_search: 오디오 시스템 코드 탐색 도구입니다. 이 도구 없이는 기존 오디오 트리거·이벤트 구조를 발견하지 못해 사운드를 추측으로 연결하여 오염의 위험을 통제할 수 없습니다.
+game-audio	prefetch	mcp__claude_ai_Notion__notion-search	게임 오디오 사운드 디자인 음악 SFX BGM	기존 오디오 문서 선점 로드
+game-audio	prefetch	mcp__plugin_context7_context7__query-docs	game audio FMOD Wwise spatial audio sound design	오디오 미들웨어 참조
+game-audio	prefetch	mcp__plugin_oh-my-claudecode_t__ast_grep_search	audio sound music sfx play	오디오 시스템 코드 식별
+game-audio	deferred	posthog	OAuth 유예||notion-search 로 오디오 피드백 메모 검색
+game-qa	meta	-	minimum_call=3
+game-qa	preferred	mcp__plugin_oh-my-claudecode_t__ast_grep_search	ast_grep_search: 게임 QA의 테스트 코드·밸런스 데이터 탐색 핵심 도구입니다. 이 도구 없이는 테스트 커버리지·밸런스 데이터를 추측으로 파악하여 검증 오염의 위험을 통제할 수 없습니다.
+game-qa	preferred	mcp__claude_ai_Notion__notion-search	notion-search: 플레이테스트 결과·버그 리포트 저장소입니다. 이 도구 없이는 기존 테스트 결과·버그 이력을 추측으로 판단하여 QA 품질 저하의 위험을 통제할 수 없습니다.
+game-qa	preferred	mcp__plugin_context7_context7__query-docs	context7 query-docs: QA 방법론·성능 프로파일링 참조 도구입니다. 이 도구 없이는 테스트 설계·성능 기준을 추측으로 구성하여 품질 저하의 위험을 통제할 수 없습니다.
+game-qa	prefetch	mcp__plugin_oh-my-claudecode_t__ast_grep_search	test assert balance config performance	테스트·밸런스 코드 식별
+game-qa	prefetch	mcp__claude_ai_Notion__notion-search	플레이테스트 버그 성능 밸런스 QA	기존 QA 결과 선점 로드
+game-qa	prefetch	mcp__plugin_context7_context7__query-docs	game QA testing playtest performance profiling balance	QA 방법론 참조
+game-qa	deferred	posthog	OAuth 유예||ast_grep_search 로 성능 로깅 코드 식별 + notion-search 로 성능 벤치마크 메모 검색

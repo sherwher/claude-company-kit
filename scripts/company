@@ -1,0 +1,336 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_SOURCE="${BASH_SOURCE[0]}"
+while [[ -L "${SCRIPT_SOURCE}" ]]; do
+  SCRIPT_DIR="$(cd -P "$(dirname "${SCRIPT_SOURCE}")" && pwd)"
+  SCRIPT_SOURCE="$(readlink "${SCRIPT_SOURCE}")"
+  if [[ "${SCRIPT_SOURCE}" != /* ]]; then
+    SCRIPT_SOURCE="${SCRIPT_DIR}/${SCRIPT_SOURCE}"
+  fi
+done
+SCRIPT_DIR="$(cd -P "$(dirname "${SCRIPT_SOURCE}")" && pwd)"
+
+usage() {
+  cat <<'EOF'
+Usage:
+  company setup <target-root>       설치
+  company update [target-root]      업데이트
+  company run <topic> [flags]       워커 실행 (= exec)
+  company worker <name>             특정 워커 스폰
+  company workers list [flags]      등록된 워커 일람 (Phase 3 SSOT)
+  company workers status <wid>      단일 워커 상세 + 최근 event
+  company workers logs <wid> [flags] 워커 event log tail (--follow 지원)
+  company restart-worker <session> <worker> [--permission-mode=acceptEdits|default|plan]
+                                    cmux 워커 surface close + 동일 worker-request 로 재시작
+                                    (bypassPermissions 는 거부 — docs/design/permission-modes.md)
+  company status                    현재 세션 대시보드
+  company demo                      5분 안에 첫 완주 체험 (신규)
+  company approve <session-id>      compact-plan 검증 후 세션 승인
+  company close <session-id>        세션 종료 (severity check + 산출물 승격)
+  company doctor                    환경 진단
+  company quality [--quick]         릴리스/품질 게이트 실행
+  company reset [--hard]            세션 초기화
+  company reset --cmux-stale --dry-run
+                                  cmux stale 후보 출력
+  company reset --cmux-stale --confirm <YYYYMMDD-cmux-stale>
+                                  cmux stale 후보 삭제
+
+Run Flags:
+  --runner=<name>         실행 러너 강제 지정 (sequential | tmux | manual | cmux)
+  --no-fallback           요청한 러너가 불가한 경우 sequential 로 폴백하지 않고 실패
+  --allow-experimental    experimental 러너 (cmux 등) 명시 opt-in
+                          (없으면 experimental 러너 선택 시 hard fail — 실수 방지 장치)
+  --primary=<worker>      라우팅 매트릭스 추천 대신 primary 워커를 강제 지정
+  --secondary=<w1,w2>     supporting 워커를 강제 지정 (콤마 구분)
+  --yes / -y              compact-plan 도착 시 자동 승인 (있을 때만 downstream 사용)
+  환경 변수:
+    COMPANY_RUNNER              — --runner 와 동일
+    COMPANY_ALLOW_EXPERIMENTAL  — 1 이면 --allow-experimental 과 동일
+    COMPANY_PRIMARY_WORKER      — --primary 와 동일
+    COMPANY_SECONDARY_WORKERS   — --secondary 와 동일 (콤마 구분)
+  (지정이 없으면 stable 러너만 auto 후보:
+     tmux 세션 내부 → tmux, 밖 → sequential 자동 선택.
+     cmux 는 experimental 이라 auto 대상이 아님 — '--runner=cmux --allow-experimental' 명시 필요)
+  알려지지 않은 '--*' 플래그는 hard-fail (예전에는 topic 으로 조용히 흡수돼 라우팅이 엉켰음).
+
+Aliases:
+  company exec <topic>              → run
+  company init <target-root>        → setup
+  company upgrade [target-root]     → update
+
+Examples:
+  company setup ../my-project
+  company run "로그인 정책 변경 영향도 분석"
+  company run "데이터 이관" --runner=sequential
+  company run "UI 리팩터" --runner=tmux --no-fallback
+  company worker backend
+  company doctor
+  company quality --quick
+EOF
+}
+
+fail() {
+  echo "Error: $*" >&2
+  echo >&2
+  usage >&2
+  exit 1
+}
+
+resolve_project_root() {
+  local parent_dir
+
+  parent_dir="$(cd "${SCRIPT_DIR}/.." && pwd)"
+  if [[ "$(basename "${parent_dir}")" == ".company-kit" ]]; then
+    cd "${parent_dir}/.." && pwd
+  else
+    printf '%s\n' "${parent_dir}"
+  fi
+}
+
+COMMAND="${1:-}"
+PROJECT_ROOT="$(resolve_project_root)"
+
+case "${COMMAND}" in
+  ""|-h|--help|help)
+    usage
+    ;;
+  setup)
+    shift
+    [[ $# -eq 1 ]] || fail "setup requires exactly one <target-root> argument."
+    exec bash "${SCRIPT_DIR}/install-into-project.sh" "$1"
+    ;;
+  update)
+    shift
+    # If the first arg is not a flag, treat it as TARGET_ROOT
+    if [[ $# -gt 0 && ! "$1" =~ ^- ]]; then
+      TARGET_ROOT="$1"
+      shift
+    else
+      TARGET_ROOT="${PROJECT_ROOT}"
+    fi
+    exec bash "${SCRIPT_DIR}/update-project-template.sh" "${TARGET_ROOT}" "$@"
+    ;;
+  run|exec)
+    shift
+    [[ $# -ge 1 ]] || fail "run requires a <topic> argument."
+    # v1.5.3: 알려지지 않은 플래그는 topic 으로 흡수하지 않고 hard-fail.
+    # 이전에는 `--primary X --secondary Y "토픽"` 같은 호출이 조용히 topic 문자열로
+    # 합쳐져서 라우팅 매트릭스가 엉뚱한 워커를 골랐다. 사용자 혼란을 막기 위해
+    # 모르는 `--*` 토큰은 즉시 거부한다.
+    RUN_FLAGS=()
+    TOPIC_PARTS=()
+    PRIMARY_OVERRIDE=""
+    SECONDARY_OVERRIDE=""
+    # v1.5.7: --runner=<name> 의 name 사전 검증 — invalid runner 일 경우
+    # prepare-session.sh 가 worktree 를 먼저 만든 후 resolve_runner 가 fail
+    # 하는 leak 을 방지. 알려진 러너 매트릭스는 runner-lib.sh 와 동기화.
+    KNOWN_RUNNERS="sequential tmux manual cmux codex-native"
+    _validate_runner() {
+      local _r="$1"
+      [[ -z "${_r}" ]] && fail "--runner requires a value (e.g. --runner=tmux)."
+      echo " ${KNOWN_RUNNERS} " | grep -q " ${_r} " \
+        || fail "Unknown runner '${_r}'. Known: ${KNOWN_RUNNERS}"
+    }
+    while [[ $# -gt 0 ]]; do
+      case "$1" in
+        --runner=*)
+          _validate_runner "${1#--runner=}"
+          RUN_FLAGS+=("$1"); shift ;;
+        --no-fallback|--allow-experimental)
+          RUN_FLAGS+=("$1"); shift ;;
+        --runner)
+          [[ $# -ge 2 ]] || fail "--runner requires a value (e.g. --runner=tmux)."
+          _validate_runner "$2"
+          RUN_FLAGS+=("--runner=$2"); shift 2 ;;
+        --primary=*)
+          PRIMARY_OVERRIDE="${1#--primary=}"; shift ;;
+        --primary)
+          [[ $# -ge 2 ]] || fail "--primary requires a worker name."
+          PRIMARY_OVERRIDE="$2"; shift 2 ;;
+        --secondary=*)
+          SECONDARY_OVERRIDE="${1#--secondary=}"; shift ;;
+        --secondary)
+          [[ $# -ge 2 ]] || fail "--secondary requires a worker name."
+          SECONDARY_OVERRIDE="$2"; shift 2 ;;
+        --yes|-y)
+          # auto-approve flag — run-session.sh 가 인식하면 그쪽에 위임, 아니면 무해
+          RUN_FLAGS+=("--yes"); shift ;;
+        --)
+          shift
+          while [[ $# -gt 0 ]]; do TOPIC_PARTS+=("$1"); shift; done ;;
+        --*)
+          fail "Unknown flag for 'run': $1 (use 'company run --help' or quote the topic)." ;;
+        *)
+          TOPIC_PARTS+=("$1"); shift ;;
+      esac
+    done
+    TOPIC="${TOPIC_PARTS[*]:-}"
+    [[ -n "${TOPIC}" ]] || fail "run requires a non-flag <topic> argument."
+    # primary/secondary override 는 환경변수로 run-session.sh 에 전달 (downstream
+    # 이 모르더라도 무해하게 무시되는 형태).
+    [[ -n "${PRIMARY_OVERRIDE}" ]]   && export COMPANY_PRIMARY_WORKER="${PRIMARY_OVERRIDE}"
+    [[ -n "${SECONDARY_OVERRIDE}" ]] && export COMPANY_SECONDARY_WORKERS="${SECONDARY_OVERRIDE}"
+    # set -u 환경에서 빈 배열 확장 가드. ${arr[@]+...} 패턴으로 안전하게 확장.
+    exec bash "${SCRIPT_DIR}/run-session.sh" "${TOPIC}" "" "${PROJECT_ROOT}" ${RUN_FLAGS[@]+"${RUN_FLAGS[@]}"}
+    ;;
+  init)
+    shift
+    [[ $# -eq 1 ]] || fail "init requires exactly one <target-root> argument."
+    exec bash "${SCRIPT_DIR}/install-into-project.sh" "$1"
+    ;;
+  upgrade)
+    shift
+    if [[ $# -gt 0 && ! "$1" =~ ^- ]]; then
+      TARGET_ROOT="$1"
+      shift
+    else
+      TARGET_ROOT="${PROJECT_ROOT}"
+    fi
+    exec bash "${SCRIPT_DIR}/update-project-template.sh" "${TARGET_ROOT}" "$@"
+    ;;
+  doctor)
+    shift
+    exec bash "${SCRIPT_DIR}/doctor.sh" "${PROJECT_ROOT}"
+    ;;
+  quality)
+    shift
+    exec bash "${SCRIPT_DIR}/quality-gate.sh" "$@"
+    ;;
+  worker)
+    shift
+    [[ $# -eq 1 ]] || fail "worker requires exactly one <name> argument."
+    exec bash "${SCRIPT_DIR}/prepare-worker.sh" "$1" "" "${PROJECT_ROOT}"
+    ;;
+  workers)
+    # Phase 3 (2026-05-13): registry SSOT 위의 read-only CLI 표면.
+    # 결정문: docs/decisions/2026-05-13-worker-registry-phase3.md v0.2
+    shift
+    WORKERS_SUB="${1:-}"
+    [[ -n "${WORKERS_SUB}" ]] || fail "company workers: subcommand required (list|status|logs|stop|doctor|cleanup)"
+    shift
+    export PROJECT_ROOT
+    # shellcheck source=./worker-registry-print.sh
+    source "${SCRIPT_DIR}/worker-registry-print.sh"
+    case "${WORKERS_SUB}" in
+      list)   registry_print_list   "$@" ;;
+      status) registry_print_status "$@" ;;
+      logs)   registry_print_logs   "$@" ;;
+      stop)
+        # Phase 4 (2026-05-13): registry SSOT 위 첫 mutating CLI 표면.
+        # 결정문: docs/decisions/2026-05-13-worker-registry-phase4.md v0.5
+        # shellcheck source=./worker-registry-stop.sh
+        source "${SCRIPT_DIR}/worker-registry-stop.sh"
+        registry_cmd_stop "$@"
+        ;;
+      doctor)
+        # Phase 5 (2026-05-15): registry SSOT 위 read-only 진단 CLI.
+        # 결정문: docs/decisions/2026-05-14-worker-registry-phase5.md v0.4 (accepted)
+        # shellcheck source=./worker-registry-doctor.sh
+        source "${SCRIPT_DIR}/worker-registry-doctor.sh"
+        registry_cmd_doctor "$@"
+        ;;
+      cleanup)
+        # Phase 5 (2026-05-15): registry SSOT 위 destructive CLI (worktree 정리 + archived 전이).
+        # 결정문: docs/decisions/2026-05-14-worker-registry-phase5.md v0.4 (accepted)
+        # 토큰 필수: destructive_local:worker_cleanup:<wid> 또는 destructive_local:worker_gc_all
+        # shellcheck source=./worker-registry-cleanup.sh
+        source "${SCRIPT_DIR}/worker-registry-cleanup.sh"
+        registry_cmd_cleanup "$@"
+        ;;
+      -h|--help|help)
+        cat <<'EOF'
+Usage: company workers <subcommand> [flags]
+
+Subcommands:
+  list                    워커 일람 (snapshot 기반)
+                          --state=<csv> --session=<id> --runner=<csv> --json --strict
+  status <worker_id>      단일 워커 상세 + 최근 event
+                          --events=<N> --json --strict
+  logs <worker_id>        워커 event log tail
+                          --tail=<N>|--all --since=<dur> --event=<type-csv> --json --follow
+  stop <worker_id>        워커를 stopped 로 전이 (Phase 4 신규)
+                          --reason=<text> --force --close-surface=auto|yes|no --json
+  doctor                  registry 정합성 + process + worktree 진단 (Phase 5 신규, read-only)
+                          --worker=<wid> --check=integrity,process,worktree --json --strict
+  cleanup <worker_id>     worktree 정리 + archived 전이 (Phase 5 신규, destructive)
+                          --reason=<text> --allow-unpushed --allow-dirty --keep-branch --json
+  cleanup --gc            stopped/orphaned 모든 워커 일괄 정리 (직전 doctor PASS 필수)
+
+각 subcommand 의 자세한 도움말: company workers <sub> --help
+EOF
+        ;;
+      *) fail "company workers: unknown subcommand '${WORKERS_SUB}' (list|status|logs|stop|doctor|cleanup)" ;;
+    esac
+    ;;
+  restart-worker)
+    # v1.5.6: cmux 워커가 권한 게이트 / 메시지 유실 등으로 멈췄을 때 정식 재시작.
+    # 기존 surface close + 같은 worker-request 로 새 pane 띄우기를 1회 명령으로.
+    shift
+    [[ $# -ge 2 ]] || fail "restart-worker requires <session-id> <worker-name> [--permission-mode=<mode>]"
+    SESSION_ARG="$1"; shift
+    WORKER_ARG="$1"; shift
+    PERM_MODE="acceptEdits"
+    DIR_ARG="right"
+    while [[ $# -gt 0 ]]; do
+      case "$1" in
+        --permission-mode=*)
+          PERM_MODE="${1#--permission-mode=}"; shift ;;
+        --permission-mode)
+          [[ $# -ge 2 ]] || fail "--permission-mode requires a value"
+          PERM_MODE="$2"; shift 2 ;;
+        --direction=*)
+          DIR_ARG="${1#--direction=}"; shift ;;
+        --*)
+          fail "Unknown flag for restart-worker: $1" ;;
+        *)
+          shift ;;
+      esac
+    done
+    # 기존 surface close (best effort)
+    TARGET_FILE="${PROJECT_ROOT}/.company-runtime/sessions/${SESSION_ARG}/workers/${WORKER_ARG}/cmux-target"
+    if [[ -f "${TARGET_FILE}" ]] && command -v cmux >/dev/null 2>&1; then
+      OLD_TARGET="$(grep -E '^(surface|panel):' "${TARGET_FILE}" 2>/dev/null | head -1 || true)"
+      if [[ -n "${OLD_TARGET}" ]]; then
+        echo "[INFO] 기존 ${OLD_TARGET} 종료 시도..."
+        cmux close-surface --surface "${OLD_TARGET#surface:}" 2>/dev/null || \
+          cmux close-surface --surface "${OLD_TARGET}" 2>/dev/null || \
+          echo "[WARN] surface close 실패 (이미 닫혔을 수 있음)" >&2
+        : > "${TARGET_FILE}"  # marker 비우기
+      fi
+    fi
+    echo "[INFO] ${WORKER_ARG} 재시작 — permission-mode=${PERM_MODE}, direction=${DIR_ARG}"
+    COMPANY_WORKER_PERMISSION_MODE="${PERM_MODE}" \
+      exec bash "${SCRIPT_DIR}/cmux-start-worker.sh" "${SESSION_ARG}" "${WORKER_ARG}" "${PROJECT_ROOT}" "${DIR_ARG}"
+    ;;
+  status)
+    shift
+    [[ $# -eq 0 ]] || fail "status does not accept extra arguments."
+    exec bash "${SCRIPT_DIR}/runtime-insights.sh" "${PROJECT_ROOT}"
+    ;;
+  demo)
+    shift
+    cd "${PROJECT_ROOT}"
+    exec bash "${SCRIPT_DIR}/company-demo.sh" "$@"
+    ;;
+  approve)
+    shift
+    [[ $# -ge 1 ]] || fail "approve requires a <session-id> argument."
+    SESSION_ARG="$1"; shift
+    exec bash "${SCRIPT_DIR}/company-approve.sh" "${SESSION_ARG}" "${PROJECT_ROOT}" "$@"
+    ;;
+  close)
+    shift
+    [[ $# -ge 1 ]] || fail "close requires a <session-id> argument."
+    SESSION_ARG="$1"; shift
+    exec bash "${SCRIPT_DIR}/close-session.sh" "${SESSION_ARG}" "${PROJECT_ROOT}" "$@"
+    ;;
+  reset)
+    shift
+    cd "${PROJECT_ROOT}"
+    exec bash "${SCRIPT_DIR}/reset.sh" "$@"
+    ;;
+  *)
+    fail "Unknown command: ${COMMAND}"
+    ;;
+esac

@@ -1,0 +1,102 @@
+# config/integrations.yaml — Slack/Telegram 옵셔널 연동 계약 SSOT
+# R22 Phase 4 / 축 2: 구조·정책·계약만. 실제 webhook dispatch 는 R23 구현.
+#
+# ── 활성화 경고 (R22 scaffold) ────────────────────────────────────────────────
+# 이 파일은 Slack 옵셔널 연동의 "계약 SSOT" 입니다.
+# slack.enabled: true 로 전환하면 doctor [10/10] 가 env 변수 존재를 요구합니다.
+# R22 단계에서는 enabled: false 를 유지하십시오 — 실제 webhook dispatch 는 R23 에서 구현됩니다.
+# 불필요한 정보 소음 방지 및 보안 연결의 명시적 확인을 위해 기본값은 false 입니다.
+# 리더의 의도적 활성화는 설계에 대한 책임 있는 개입의 시작입니다.
+# 비밀값 SSOT: .company-local.env.example 의 Slack 섹션 참조.
+# ──────────────────────────────────────────────────────────────────────────────
+
+version: 1
+
+slack:
+  enabled: false   # 기본값 false — doctor [10/10] 가 이 값을 읽어 SKIPPED/ACTIVE/FAIL 분기
+  bot_name: "ai-company-harness"   # Bot Name SSOT — 이 필드만 수정하면 모든 메시지 발신자 이름 변경
+
+  outbound:
+    webhook_env_keys:
+      - SLACK_WEBHOOK_URL
+      - SLACK_WEBHOOK_URL_APPROVALS
+      - SLACK_WEBHOOK_URL_AUDIT
+    default_lane: session-thread
+    lanes:
+      - session-thread    # 워커 스폰·완료·timeout 등 세션 흐름 알림
+      - approvals         # approval_required — 리더 개입 필요
+      - audit             # approved/rejected — 승인 이력
+      - company-hq        # spawn_failure, compact_result_ready, export_promoted, sentinel_detected
+
+  callback:
+    # R23 에서 구현. R22 에서는 scaffold 선언만.
+    enabled: false
+    signing_secret_env_key: SLACK_SIGNING_SECRET
+    replay_window_seconds: 300   # HMAC 재전송 방지 윈도우 (초)
+
+  routes:
+    # 11 canonical 이벤트 전수 선언 (notification-policy.md 와 1:1 대응)
+    # 형식: { lanes: [lane...], severity: P1|P2|P3 }
+    spawn_prepared:
+      lanes: [session-thread]
+      severity: P3
+    spawn_success:
+      lanes: [session-thread]
+      severity: P3
+    spawn_failure:
+      lanes: [company-hq]
+      severity: P1
+    approval_required:
+      lanes: [approvals]
+      severity: P1
+    plan_validated:
+      lanes: [session-thread]
+      severity: P3   # pass 시 P3, fail 시 P2 — notification-policy.md §4 참조
+    approved:
+      lanes: [audit, session-thread]
+      severity: P3
+    rejected:
+      lanes: [audit, session-thread]
+      severity: P2
+    compact_result_ready:
+      lanes: [company-hq]
+      severity: P3
+    export_promoted:
+      lanes: [company-hq]
+      severity: P3   # 정상 P3, 회귀 발생 시 P2 — notification-policy.md §4 참조
+    sentinel_detected:
+      lanes: [company-hq]
+      severity: P1
+    worker_timeout:
+      lanes: [session-thread, audit]
+      severity: P1
+
+  event_aliases:
+    # raw emit 이름 → canonical 이름 매핑
+    # 현재 scripts/ 에서 실제로 emit 되는 4 종의 raw 이벤트 이름
+    # (grep 결과: prepare-worker.sh:118 / run-session.sh:97 / company-approve.sh:149 / close-session.sh:275)
+
+    spawn_attempt: spawn_prepared
+    # ⚠ semantic drift: session-level raw event → worker-level canonical 매핑.
+    # session_prepared 는 run-session.sh 의 세션 초기화 시점 emit 으로,
+    # canonical spawn_prepared (워커 스폰 준비) 와 레벨이 다름.
+    # R23 wiring 시 canonical event 세분화 재검토 (12 확장 옵션). 현재 R22 는 SSOT 11 집합 불변.
+    session_prepared: spawn_prepared
+
+    approved: approved
+
+    # ⚠ semantic drift: session_closed 는 모든 워커 결과 수거 완료 시점 (close-session.sh L275).
+    # canonical compact_result_ready 는 개별 워커 결과 준비 시점으로 의미 범위가 다름.
+    # R23 wiring 시 canonical event 세분화 재검토 (12 확장 옵션). 현재 R22 는 SSOT 11 집합 불변.
+    session_closed: compact_result_ready
+
+    # TODO (R23 wiring 시 해소): 아래 7 canonical 이벤트는 현재 emit call site 없음.
+    # R23 에서 각 스크립트에 emit 호출 추가 예정:
+    # - spawn_success    → prepare-worker.sh 스폰 성공 후
+    # - spawn_failure    → prepare-worker.sh 스폰 실패 시
+    # - approval_required → company-approve.sh 대기 진입 시
+    # - plan_validated   → compact-plan.md 검증 완료 시
+    # - rejected         → company-approve.sh 거절 시
+    # - export_promoted  → close-session.sh export 성공 시
+    # - sentinel_detected → (신규 스크립트 필요)
+    # - worker_timeout   → (신규 스크립트 필요)

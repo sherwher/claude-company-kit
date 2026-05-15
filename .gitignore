@@ -1,0 +1,20 @@
+# Plugin runtime data (downstream-owned, never committed in plugin)
+.company-runtime/
+.company-artifacts/
+.company-project/
+.company-shared/
+.company-shared.backup-*/
+
+# OS
+.DS_Store
+
+# Logs
+*.log
+firebase-debug.log
+
+# Editor
+*.swp
+.vscode/
+
+# Backups created by sanitize
+*.bak

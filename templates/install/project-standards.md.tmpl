@@ -1,0 +1,72 @@
+# 프로젝트 표준
+
+이 문서는 이 프로젝트의 공통 규칙 기준입니다. 모든 팀은 작업 전에 이 문서를 먼저 확인합니다.
+
+## 1. 스택 요약
+
+- 스택: {{stack}}
+- 패키지 매니저: (npm / pnpm / yarn / gradle 등 기입)
+- 주요 프레임워크: (React / Spring Boot / Unity 등 기입)
+
+## 2. 코드 컨벤션
+
+- 포맷터 명령: (예: `pnpm prettier --write .` 또는 `./gradlew spotlessApply`)
+- 린트 명령: (예: `pnpm eslint .` 또는 `./gradlew check`)
+- 테스트 명령: (예: `pnpm vitest run` 또는 `./gradlew test`)
+- 네이밍 규칙:
+  - 파일: PascalCase (컴포넌트/클래스), camelCase (유틸/서비스)
+  - 클래스/컴포넌트: PascalCase
+  - 변수/함수: camelCase
+- 모듈 경계: (예: `controller -> service -> repository` 또는 `screen -> feature -> shared`)
+- 주석 정책: why comments only, TODO는 owner 없이 남기지 않음
+
+## 3. Git 및 Worktree 규칙
+
+- 브랜치 이름 규칙:
+  - session: `session/<session-id>`
+  - hotfix: `hotfix/<scope>`
+  - release: `release/<version>`
+- 코드 수정은 session worktree에서만 진행
+- 관련 없는 변경은 같은 커밋에 섞지 않음
+- 커밋 메시지 형식:
+  - 기본은 한글 작성
+  - 형식은 `유형(범위): 요약` 또는 `유형: 요약`
+  - 예: `기능(결제): 환불 상태 조회 API 추가`
+- 머지 정책: 기본은 squash merge, hotfix는 필요 시 rebase merge 허용
+
+## 4. 문서 규칙
+
+- 기준 문서:
+  - 공통 기준: `project-work/`
+  - 프로젝트 규칙: `.company-project/project-standards.md`
+  - 결정 사항: `project-work/09-decisions/decision-log.md`
+- 설계 변경 시 같이 갱신할 문서:
+  - API 변경: `04-backend/api-contract.md`
+  - UI 변경: `02-design/`, `03-frontend/`
+  - 데이터 변경: `05-data/`, `06-erd/`
+- 결정사항은 decision-log.md 또는 별도 decision record에 남김
+
+## 5. 리뷰 및 완료 기준
+
+- reviewer가 필수인 경우:
+  - API contract가 바뀔 때
+  - DB schema가 바뀔 때
+  - 화면 흐름이나 navigation이 바뀔 때
+  - 외부 연동이나 개인정보 처리가 들어갈 때
+- 승인 전 최소 검증:
+  - 관련 lint 통과
+  - 관련 test 통과
+  - 필요한 `project-work/` 문서 갱신
+- 차단 조건:
+  - 테스트 불가 또는 실패 상태
+  - 문서와 구현이 어긋남
+  - scope 밖 변경 포함
+  - 보안/개인정보 리스크 미해결
+- 완료로 보는 기준:
+  - 코드, 문서, 결정 로그, review 상태가 함께 닫힘
+
+## 6. 외부 연동 규칙
+
+- leader 전용 서비스: Notion, Google Drive / Docs / Sheets
+- export 허용 경로: `.company-exports/`
+- 금지 대상: 승인되지 않은 external folder, page, notebook, workspace

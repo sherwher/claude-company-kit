@@ -1,0 +1,26 @@
+game-qa	게임 QA 플레이테스트 playtest 성능 QA performance 밸런스 검증 balance 호환성 compatibility 게임 테스트 game test bug	playtest 게임 QA game test balance 성능	game-designer,qa-reviewer
+proposal-writer	제안서 proposal rfp bid 공공 입찰 발표 자료 executive summary scope	sow proposal public bid	strategy-planner,risk-reviewer,service-planner
+risk-reviewer	법무 리스크 risk privacy 개인정보 규제 legal contract compliance policy security terms	privacy legal contract	backend-engineer
+growth-marketer	마케팅 growth retention campaign acquisition message copy funnel crm ad seo	message campaign retention	data-analyst,service-planner
+content-strategist	콘텐츠 카피 메시지 message copy content 문구 랜딩 카피 onboarding copy microcopy cta tagline	콘텐츠 카피 message copy microcopy	ux-designer,growth-marketer,proposal-writer
+service-planner	기획 prd ux 요구사항 requirement user flow policy scope onboarding checkout payment form service planner 회고 retrospective 메타 meta 템플릿 template 문서 docs 전략문서 방향 업스트림 upstream 기여 contribute		brainstormer,strategy-planner
+unity-engineer	Unity 유니티 C# DOTS URP HDRP Addressables MonoBehaviour ScriptableObject	Unity 유니티 C# DOTS URP HDRP	game-programmer,technical-artist
+fullstack-architect	아키텍처 architecture system design 구조 설계 mvp fullstack boundary backend frontend erd	api contract	frontend-engineer,backend-engineer,qa-reviewer
+technical-artist	테크니컬 아트 tech art 셰이더 shader 렌더 파이프라인 render pipeline 최적화 optimization LOD	tech art 셰이더 shader render pipeline optimization	game-artist,game-programmer
+ux-researcher	리서치 인터뷰 사용자 조사 pain point usability validation 가설 검증 user research interview survey insight jtbd	리서치 interview usability validation 가설	service-planner,ux-designer,data-analyst
+ux-designer	ux user flow wireframe interaction 화면 설계 상태 설계 flow 와이어 인터랙션 user experience ux design	ux wireframe interaction flow 상태	service-planner,frontend-engineer,ux-researcher
+graphic-designer	그래픽 비주얼 브랜드 brand visual 시안 key visual 제안서 시각화 아이덴티티 logo typography 캠페인 크리에이티브 poster	비주얼 brand key visual 아이덴티티 시안	content-strategist,growth-marketer,proposal-writer
+brainstormer	아이디어 브레인스토밍 대안 옵션 실험 주제 후보 ideation brainstorm options alternatives		service-planner,strategy-planner
+strategy-planner	전략 우선순위 수익성 revenue pricing roi 투자 cost budget roadmap direction strategy priority		data-analyst,risk-reviewer
+game-audio	게임 오디오 game audio 사운드 sound 음악 music 효과음 SFX BGM 오디오 시스템 FMOD Wwise MetaSound	game audio 사운드 sound SFX BGM FMOD Wwise	game-programmer,game-designer
+level-designer	레벨 디자인 level design encounter 인카운터 페이싱 pacing 환경 퍼즐 environment puzzle map 맵	level design 인카운터 encounter pacing	game-designer,game-artist
+qa-reviewer	qa test testing regression acceptance review checklist bug scenario e2e	verify regression acceptance	frontend-engineer,backend-engineer
+backend-engineer	백엔드 backend api domain db database schema server auth queue integration contract	domain api schema db	qa-reviewer,risk-reviewer
+game-artist	게임 아트 game art 컨셉아트 concept 3D 모델링 modeling 애니메이션 animation VFX 캐릭터 character 에셋	game art 컨셉아트 concept art 3D modeling animation VFX	technical-artist,graphic-designer
+data-analyst	데이터 data analytics metric metrics funnel experiment ab retention cohort tracking dashboard	report metric experiment analytics	growth-marketer,service-planner
+game-programmer	게임플레이 gameplay 로직 logic AI 네트워킹 networking 물리 physics multiplayer 멀티플레이어 game code	gameplay logic networking physics AI game code	unity-engineer,unreal-engineer,game-qa
+narrative-designer	내러티브 narrative story 스토리 다이얼로그 dialogue 분기 branching 월드빌딩 worldbuilding lore 로어	narrative 다이얼로그 dialogue story 월드빌딩	game-designer,content-strategist
+game-director	게임 프로덕션 game production creative direction milestone 마일스톤 크리에이티브 게임 기획 game project	game production milestone 크리에이티브	game-designer,strategy-planner
+game-designer	GDD 게임 디자인 game design system 시스템 설계 밸런싱 balancing 이코노미 economy combat 전투 메카닉 mechanic	GDD 밸런싱 이코노미 game design system	level-designer,game-programmer,data-analyst
+frontend-engineer	프론트엔드 frontend ui webapp screen component state react next layout design system	app page screen ui component state	qa-reviewer,service-planner
+unreal-engineer	Unreal UE5 언리얼 C++ Blueprint 블루프린트 GAS Nanite Lumen MetaSound	Unreal UE5 언리얼 Blueprint GAS	game-programmer,technical-artist

@@ -1,0 +1,4 @@
+commit-guard
+verification-loop
+architecture-review
+browser-qa

@@ -1,0 +1,1472 @@
+# company.yaml — 통합 설정 파일
+# 기존 TSV 파일(worker-definitions, worker-routing-keywords, worker-role-briefs)을 대체합니다.
+# 레거시 TSV는 호환성 유지용으로 남겨두고, 새 스크립트는 이 파일을 기준으로 읽습니다.
+
+version: "2"
+
+# ──────────────────────────────────────────
+# Evidence Kind SSOT (v0.3-alpha, additive)
+# ──────────────────────────────────────────
+# 왜: must_call_mcp(도구 카운트) 게이트의 단일 장애점·카운트 게임화·OAuth 종속을
+#     해소하기 위해 "검증 가능한 증거 종류"를 1차 게이트로 도입한다.
+# 운영: 이 섹션은 additive — 기존 워커 brief는 무수정 통과한다.
+#     역할별 required/optional 매핑은 B2 단계(워커별 brief 변환)에서 채운다.
+#     현재 단계(B1)는 enum SSOT + shadow validator만 도입한다.
+# 마이그레이션: B1(현재) → B2(역할별 매핑) → B3(deprecation) → B4(must_call_mcp 제거)
+evidence:
+  kinds:
+    - id: code_symbol_or_reference
+      desc: 심볼/참조/호출관계 등 코드 경계 근거
+    - id: repo_text_or_diff
+      desc: rg·설정 원문·git diff 같은 저장소 텍스트 근거
+    - id: external_spec_or_policy
+      desc: RFC·사내정책·Notion 원문 등 외부 규격 근거
+    - id: api_contract_or_schema
+      desc: OpenAPI·SQL·JSON Schema·타입 정의 근거
+    - id: runtime_log_or_trace
+      desc: 로그·에러·트레이스·재현 출력 근거
+    - id: static_vuln_scan
+      desc: Semgrep·CodeQL·SARIF 자동 정적진단 근거
+    - id: product_metric_lookup
+      desc: PostHog·BI·warehouse 질의 결과 근거
+    - id: experiment_or_feedback_artifact
+      desc: 실험회고·인터뷰·ticket·CS 같은 사용자/실험 근거
+    - id: dependency_or_sbom
+      desc: lockfile·SBOM·advisory·버전 근거
+    - id: architecture_or_decision_record
+      desc: ADR·설계메모·승인/예외 기록 근거
+  default_must_provide:
+    minimum_distinct_kinds: 2
+    required_kinds: []      # B2에서 역할별로 채움
+    optional_kinds: []
+    deferred_kinds: []      # 정의된 유예 상태(예: PostHog OAuth 미인증 시 product_metric_lookup)
+  manifest_location: "workers/<worker>/evidence-manifest.yaml"
+  expected_location: "workers/<worker>/expected-evidence.json"  # prepare-worker.sh가 떨굼
+  validator:
+    mode: primary           # shadow | primary  (B3~ — evidence gate가 1차 게이트)
+    script: scripts/validate-evidence.sh
+    exit_on_failure: true   # B4 — expected-gate 위반 시 approve 차단 (hard gate)
+  # v0.3-alpha 마이그레이션 종료 (B4): must_call_mcp는 active config에 존재하지 않으며
+  # audit_only_legacy_fields 메타도 더 이상 필요 없다. drafts/archive 사본만 잔존하나
+  # 런타임 코드 경로는 아무 것도 참조하지 않음.
+
+# ──────────────────────────────────────────
+# Workers
+# ──────────────────────────────────────────
+workers:
+
+  strategy-planner:
+    display_name: 전략 플래너
+    aliases: [strategy]
+    profile: .company-kit/docs/profiles/strategy.md
+    starter: .company-kit/templates/team-starters/strategy.md
+    work_dirs:
+      - project-work/00-project
+      - project-work/01-planning
+      - project-work/09-decisions
+    routing:
+      keywords: [전략, 우선순위, 수익성, revenue, pricing, roi, 투자, cost, budget, roadmap, direction, strategy, priority]
+      priority_keywords: []
+      default_support: [data-analyst, risk-reviewer]
+    brief:
+      mission: 사업 방향, 우선순위, 비용, 리스크를 경영 관점에서 판단 가능한 계획으로 정리한다.
+      tasks: [market-case, finance-case, priority-review]
+      deliverables: [방향성 요약, 우선순위 제안, 비용 메모, 리스크 메모]
+      key_questions:
+        - 왜 지금 이 안이 맞는가
+        - 대체안보다 왜 우선인가
+        - 비용과 리스크를 감안해도 유지할 가치가 있는가
+      must_provide_evidence:  # v0.3-alpha B2 — stub_worker default 매핑
+        minimum_distinct_kinds: 2
+        required_kinds: [repo_text_or_diff, external_spec_or_policy]
+        optional_kinds: [code_symbol_or_reference, architecture_or_decision_record]
+        deferred_kinds: []
+      mcp:  # R21 (축 1 / Phase 3)
+        minimum_call: 3
+        preferred_tools:
+          - id: mcp__claude_ai_Notion__notion-search
+            rationale: "notion-search: 전략 플래너의 의사결정 근거 저장소입니다. 이 도구 없이는 이전 방향 결정·ROI 메모·우선순위 맥락을 추측으로 판단하여 전략 오염의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_context7_context7__query-docs
+            rationale: "context7 query-docs: 전략 플래너의 외부 규격·정책 참조 도구입니다. 이 도구 없이는 산업 표준·규제 맥락 없이 비용·리스크 판단을 추측으로 내려 근거 없는 계획의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_oh-my-claudecode_t__ast_grep_search
+            rationale: "ast_grep_search: 전략 플래너의 코드 기반 비용·리스크 탐색 도구입니다. 이 도구 없이는 기술 부채·의존성 범위를 추측으로 산정하여 전략 판단 품질이 저하될 위험을 통제할 수 없습니다."
+        prefetch_queries:
+          - tool: mcp__claude_ai_Notion__notion-search
+            query: "전략 방향 ROI 우선순위 의사결정"
+            why: "직전 전략 결정 맥락 선점 로드"
+          - tool: mcp__plugin_context7_context7__query-docs
+            query: "business strategy prioritization framework"
+            why: "외부 프레임워크 참조로 방향성 근거 보강"
+          - tool: mcp__plugin_oh-my-claudecode_t__ast_grep_search
+            query: "cost budget dependency config"
+            why: "기술 비용 추정 근거 코드 식별"
+        deferred:
+          - tool: posthog
+            reason: "OAuth 유예"
+            fallback: "notion-search 로 내부 지표·실험 결과 메모 검색 + ast_grep_search 로 이벤트 전송 코드 위치 식별"
+          - tool: stripe
+            reason: "OAuth 유예"
+            fallback: "notion-search 로 결제·수익 관련 의사결정 메모 + context7 query-docs 로 Stripe API 공식 사양 참조"
+
+  service-planner:
+    display_name: 서비스 플래너
+    aliases: [planning, prd-planner]
+    profile: .company-kit/docs/profiles/planning.md
+    starter: .company-kit/templates/team-starters/planning.md
+    work_dirs:
+      - project-work/00-project
+      - project-work/01-planning
+      - project-work/02-design
+    routing:
+      keywords: [기획, prd, ux, 요구사항, requirement, user, flow, policy, scope, onboarding, checkout, payment, form, service, planner, 회고, retrospective, 메타, meta, 템플릿, template, 문서, docs, 전략문서, 방향, 업스트림, upstream, 기여, contribute]
+      priority_keywords: []
+      default_support: [brainstormer, strategy-planner]
+    brief:
+      mission: 요구사항, 범위, 사용자 흐름, 정책 예외를 제품 관점에서 구조화한다.
+      tasks: [requirements, user-flow, policy-check]
+      deliverables: [PRD 초안, 기능 구조, 사용자 흐름, 정책 메모]
+      key_questions:
+        - 사용자가 정확히 무엇을 하게 되는가
+        - 기능 경계는 어디까지인가
+        - 가장 위험한 UX 가정은 무엇인가
+      must_provide_evidence:  # v0.3-alpha B2 — stub_worker default 매핑
+        minimum_distinct_kinds: 2
+        required_kinds: [repo_text_or_diff, external_spec_or_policy]
+        optional_kinds: [code_symbol_or_reference, architecture_or_decision_record]
+        deferred_kinds: []
+      mcp:  # R21 (축 1 / Phase 3)
+        minimum_call: 3
+        preferred_tools:
+          - id: mcp__claude_ai_Notion__notion-search
+            rationale: "notion-search: 서비스 플래너의 요구사항·정책 근거 저장소입니다. 이 도구 없이는 사용자 흐름·정책 예외 맥락을 추측으로 채워 요구사항 오염의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_context7_context7__query-docs
+            rationale: "context7 query-docs: 서비스 플래너의 UX 패턴·API 사양 참조 도구입니다. 이 도구 없이는 인터페이스 설계 근거 없이 기능 범위를 추측으로 결정하여 품질 저하의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_oh-my-claudecode_t__ast_grep_search
+            rationale: "ast_grep_search: 서비스 플래너의 기존 구현 범위 확인 도구입니다. 이 도구 없이는 중복 기능·기존 정책 코드를 발견하지 못해 범위 추측의 위험을 통제할 수 없습니다."
+        prefetch_queries:
+          - tool: mcp__claude_ai_Notion__notion-search
+            query: "PRD 요구사항 정책 사용자 흐름 기능 범위"
+            why: "기존 기획 문서 선점 로드로 중복 정의 방지"
+          - tool: mcp__plugin_context7_context7__query-docs
+            query: "user flow UX design pattern requirement specification"
+            why: "UX 패턴 참조로 기능 경계 근거 보강"
+          - tool: mcp__plugin_oh-my-claudecode_t__ast_grep_search
+            query: "policy rule validation form flow"
+            why: "기존 정책·폼 흐름 코드 식별"
+        deferred:
+          - tool: posthog
+            reason: "OAuth 유예"
+            fallback: "notion-search 로 내부 제품 지표·사용자 피드백 메모 + ast_grep_search 로 이벤트 전송 코드 위치 식별"
+          - tool: figma
+            reason: "OAuth 유예"
+            fallback: "notion-search 로 디자인 의사결정 메모 + context7 query-docs 로 컴포넌트 라이브러리 공식 문서 참조"
+
+  brainstormer:
+    display_name: 브레인스토머
+    aliases: [brainstorm]
+    profile: .company-kit/docs/profiles/brainstorm.md
+    starter: .company-kit/templates/team-starters/brainstorm.md
+    work_dirs:
+      - project-work/00-project
+      - project-work/01-planning
+      - project-work/02-design
+      - project-work/09-decisions
+    routing:
+      keywords: [아이디어, 브레인스토밍, 대안, 옵션, 실험, 주제, 후보, ideation, brainstorm, options, alternatives]
+      priority_keywords: []
+      default_support: [service-planner, strategy-planner]
+    brief:
+      mission: 대안을 넓게 펼치고 찬반 논점을 부딪혀 다음 검증 질문을 만든다.
+      tasks: [options, objections, reality-check]
+      deliverables: [아이디어 후보, 찬반 논점, 핵심 리스크, 다음 검증 질문]
+      key_questions:
+        - 어떤 대안이 있는가
+        - 각 대안의 가장 큰 장점과 실패 가능성은 무엇인가
+        - 지금 바로 검증할 질문은 무엇인가
+      must_provide_evidence:  # v0.3-alpha B2 — brainstormer 매핑
+        minimum_distinct_kinds: 2
+        required_kinds: [experiment_or_feedback_artifact, repo_text_or_diff]
+        optional_kinds: [external_spec_or_policy, product_metric_lookup]
+        deferred_kinds: []
+      mcp:  # R21 (축 1 / Phase 3)
+        minimum_call: 3
+        preferred_tools:
+          - id: mcp__claude_ai_Notion__notion-search
+            rationale: "notion-search: 브레인스토머의 아이디어 맥락 저장소입니다. 이 도구 없이는 이전 실험·피드백·대안 후보를 추측으로 복원하여 아이디에이션 오염의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_context7_context7__query-docs
+            rationale: "context7 query-docs: 브레인스토머의 기술·시장 패턴 참조 도구입니다. 이 도구 없이는 대안 검토 시 외부 레퍼런스 없이 추측으로 찬반 논점을 구성하여 품질 저하의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_oh-my-claudecode_t__ast_grep_search
+            rationale: "ast_grep_search: 브레인스토머의 기존 구현 대안 탐색 도구입니다. 이 도구 없이는 코드베이스 내 기존 패턴을 발견하지 못해 실현 가능성 판단을 추측으로 내려 오염의 위험을 통제할 수 없습니다."
+        prefetch_queries:
+          - tool: mcp__claude_ai_Notion__notion-search
+            query: "아이디어 실험 대안 후보 피드백 회고"
+            why: "이전 브레인스토밍 결과 선점 로드"
+          - tool: mcp__plugin_context7_context7__query-docs
+            query: "product alternatives innovation experiment patterns"
+            why: "외부 레퍼런스로 대안 품질 보강"
+          - tool: mcp__plugin_oh-my-claudecode_t__ast_grep_search
+            query: "feature flag experiment toggle variant"
+            why: "기존 실험 인프라 코드 식별"
+        deferred:
+          - tool: posthog
+            reason: "OAuth 유예"
+            fallback: "notion-search 로 내부 실험·피드백 결과 메모 + ast_grep_search 로 이벤트 코드 위치 식별"
+
+  fullstack-architect:
+    display_name: 풀스택 아키텍트
+    aliases: [engineering, architecture]
+    profile: .company-kit/docs/profiles/engineering.md
+    starter: .company-kit/templates/team-starters/engineering.md
+    work_dirs:
+      - project-work/00-project
+      - project-work/03-frontend
+      - project-work/04-backend
+      - project-work/06-erd
+    routing:
+      keywords: [아키텍처, architecture, system, design, 구조, 설계, mvp, fullstack, boundary, backend, frontend, erd]
+      priority_keywords: [api, contract]
+      default_support: [frontend-engineer, backend-engineer, qa-reviewer]
+    brief:
+      mission: 프론트엔드, 백엔드, 데이터 흐름을 통합해 구현 구조와 기술 리스크를 분해한다.
+      tasks: [frontend-boundary, backend-boundary, data-flow]
+      deliverables: [아키텍처 초안, 구현 분해, 경계 정의, 기술 리스크]
+      key_questions:
+        - 구현 단위가 어떻게 나뉘는가
+        - 가장 큰 기술 리스크는 어디인가
+        - 어디서 프론트엔드와 백엔드 책임이 갈리는가
+      must_provide_evidence:  # v0.3-alpha B2 — backend 매핑
+        minimum_distinct_kinds: 2
+        required_kinds: [code_symbol_or_reference, external_spec_or_policy]
+        optional_kinds: [api_contract_or_schema, runtime_log_or_trace, architecture_or_decision_record]
+        deferred_kinds: []
+      mcp:  # R21 (축 1 / Phase 3)
+        minimum_call: 3
+        preferred_tools:
+          - id: mcp__plugin_oh-my-claudecode_t__ast_grep_search
+            rationale: "ast_grep_search: 풀스택 아키텍트의 코드 지형도입니다. 이 도구 없이는 프론트·백 경계 정의·데이터 흐름·의존성 범위를 추측으로 판단하여 아키텍처 오염의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_oh-my-claudecode_t__lsp_workspace_symbols
+            rationale: "lsp_workspace_symbols: 풀스택 아키텍트의 심볼 전역 탐색 도구입니다. 이 도구 없이는 인터페이스·타입·계약 심볼을 추측으로 매핑하여 경계 오염의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_oh-my-claudecode_t__lsp_goto_definition
+            rationale: "lsp_goto_definition: 풀스택 아키텍트의 정의 추적 도구입니다. 이 도구 없이는 API 계약·타입 원점을 추측으로 참조하여 설계 근거 없는 판단의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_context7_context7__query-docs
+            rationale: "context7 query-docs: 풀스택 아키텍트의 공식 SDK·프레임워크 사양 참조 도구입니다. 이 도구 없이는 통합 설계 시 공식 계약 없이 추측으로 구조를 결정하여 품질 저하의 위험을 통제할 수 없습니다."
+        prefetch_queries:
+          - tool: mcp__plugin_oh-my-claudecode_t__ast_grep_search
+            query: "api route handler controller service repository"
+            why: "프론트·백 경계 패턴 식별"
+          - tool: mcp__plugin_oh-my-claudecode_t__lsp_workspace_symbols
+            query: "interface type contract schema"
+            why: "전역 타입 계약 심볼 선점 로드"
+          - tool: mcp__plugin_context7_context7__query-docs
+            query: "fullstack architecture API design system integration"
+            why: "통합 설계 공식 레퍼런스 확보"
+        deferred:
+          - tool: posthog
+            reason: "OAuth 유예"
+            fallback: "notion-search 로 내부 제품 지표 메모 + ast_grep_search 로 이벤트 전송 코드 위치 식별"
+          - tool: sentry
+            reason: "OAuth 유예"
+            fallback: "ast_grep_search 로 repo 내 error handling / try-catch / panic 패턴 + context7 query-docs 로 프레임워크 공식 error taxonomy 참조"
+
+  frontend-engineer:
+    display_name: 프론트엔드 엔지니어
+    aliases: [frontend, ui-engineer]
+    profile: .company-kit/docs/profiles/engineering.md
+    starter: .company-kit/templates/team-starters/engineering.md
+    work_dirs:
+      - project-work/00-project
+      - project-work/02-design
+      - project-work/03-frontend
+    routing:
+      keywords: [프론트엔드, frontend, ui, webapp, screen, component, state, react, next, layout, design, system]
+      priority_keywords: [app, page, screen, ui, component, state]
+      default_support: [qa-reviewer, service-planner]
+    brief:
+      mission: 화면 구조, 상태 흐름, 컴포넌트 경계를 프론트엔드 관점에서 설계한다.
+      tasks: [ui-structure, state-flow, component-review]
+      deliverables: [화면 구조 초안, 상태 흐름, 컴포넌트 분해, UI 리스크]
+      key_questions:
+        - 상태는 어디에서 관리되는가
+        - 재사용 경계는 무엇인가
+        - 구현 난도가 높은 화면은 어디인가
+      must_provide_evidence:  # v0.3-alpha B2 — stub_worker default 매핑 (R6 결정: UI 구조 중심, backend 매핑 아님)
+        minimum_distinct_kinds: 2
+        required_kinds: [repo_text_or_diff, external_spec_or_policy]
+        optional_kinds: [code_symbol_or_reference, architecture_or_decision_record]
+        deferred_kinds: []
+      mcp:  # R21 (축 1 / Phase 3)
+        minimum_call: 3
+        preferred_tools:
+          - id: mcp__plugin_oh-my-claudecode_t__ast_grep_search
+            rationale: "ast_grep_search: 프론트엔드 엔지니어의 컴포넌트 구조 탐색 도구입니다. 이 도구 없이는 상태 흐름·재사용 경계·컴포넌트 의존성을 추측으로 판단하여 UI 오염의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_oh-my-claudecode_t__lsp_document_symbols
+            rationale: "lsp_document_symbols: 프론트엔드 엔지니어의 파일 내 심볼 지도 도구입니다. 이 도구 없이는 컴포넌트 내부 구조·훅·이벤트 핸들러를 추측으로 매핑하여 재사용 경계 오염의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_context7_context7__query-docs
+            rationale: "context7 query-docs: 프론트엔드 엔지니어의 프레임워크 공식 문서 참조 도구입니다. 이 도구 없이는 React·Next.js·상태관리 패턴을 추측으로 적용하여 품질 저하의 위험을 통제할 수 없습니다."
+          - id: mcp__pencil__batch_get
+            rationale: "pencil batch_get: 프론트엔드 엔지니어의 디자인 시스템 근거 도구입니다. 이 도구 없이는 .pen 파일의 컴포넌트·레이아웃 정의를 추측으로 구현하여 디자인 오염의 위험을 통제할 수 없습니다."
+        prefetch_queries:
+          - tool: mcp__plugin_oh-my-claudecode_t__ast_grep_search
+            query: "useState useEffect component props interface"
+            why: "상태 흐름·컴포넌트 경계 패턴 식별"
+          - tool: mcp__plugin_oh-my-claudecode_t__lsp_document_symbols
+            query: "component hook handler"
+            why: "파일 내 심볼 구조 선점 로드"
+          - tool: mcp__plugin_context7_context7__query-docs
+            query: "React Next.js component state management pattern"
+            why: "프레임워크 공식 패턴 참조"
+        deferred:
+          - tool: figma
+            reason: "OAuth 유예"
+            fallback: "pencil batch_get 으로 .pen 디자인 파일 직접 조회 + notion-search 로 디자인 의사결정 메모 참조"
+          - tool: posthog
+            reason: "OAuth 유예"
+            fallback: "notion-search 로 UI 이벤트·전환율 관련 지표 메모 + ast_grep_search 로 이벤트 전송 코드 위치 식별"
+
+  backend-engineer:
+    display_name: 백엔드 엔지니어
+    aliases: [backend, api-engineer]
+    profile: .company-kit/docs/profiles/engineering.md
+    starter: .company-kit/templates/team-starters/engineering.md
+    work_dirs:
+      - project-work/00-project
+      - project-work/04-backend
+      - project-work/06-erd
+    routing:
+      keywords: [백엔드, backend, api, domain, db, database, schema, server, auth, queue, integration, contract]
+      priority_keywords: [domain, api, schema, db]
+      default_support: [qa-reviewer, risk-reviewer]
+    brief:
+      mission: 도메인 모델, API 경계, 실패 시나리오를 백엔드 관점에서 설계한다.
+      tasks: [domain-model, api-contract, failure-modes]
+      deliverables: [도메인 메모, API 계약 초안, 예외 흐름, 운영 리스크]
+      key_questions:
+        - 도메인 경계는 무엇인가
+        - API 계약은 어떻게 생겨야 하는가
+        - 가장 취약한 실패 지점은 어디인가
+      must_provide_evidence:  # v0.3-alpha B2 — backend 매핑
+        minimum_distinct_kinds: 2
+        required_kinds: [code_symbol_or_reference, external_spec_or_policy]
+        optional_kinds: [api_contract_or_schema, runtime_log_or_trace, architecture_or_decision_record]
+        deferred_kinds: []
+      mcp:  # R21 (축 1 / Phase 3)
+        minimum_call: 3
+        preferred_tools:
+          - id: mcp__plugin_oh-my-claudecode_t__ast_grep_search
+            rationale: "ast_grep_search: 백엔드 엔지니어의 코드 지형도입니다. 이 도구 없이는 retry 호출 / 트랜잭션 범위 / 미사용 catch 블록 같은 구조적 위험을 추측으로 판단하여 아키텍처 오염의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_oh-my-claudecode_t__lsp_workspace_symbols
+            rationale: "lsp_workspace_symbols: 백엔드 엔지니어의 전역 심볼 탐색 도구입니다. 이 도구 없이는 도메인 경계·인터페이스·타입 계약을 추측으로 매핑하여 API 오염의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_oh-my-claudecode_t__lsp_find_references
+            rationale: "lsp_find_references: 백엔드 엔지니어의 영향 범위 분석 도구입니다. 이 도구 없이는 API 변경·도메인 수정의 downstream 영향을 추측으로 판단하여 회귀 오염의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_context7_context7__query-docs
+            rationale: "context7 query-docs: 백엔드 엔지니어의 공식 SDK·프레임워크 사양 도구입니다. 이 도구 없이는 DB 트랜잭션·큐·인증 패턴을 추측으로 구현하여 P99 latency 품질 저하의 위험을 통제할 수 없습니다."
+        prefetch_queries:
+          - tool: mcp__plugin_oh-my-claudecode_t__ast_grep_search
+            query: "retry transaction lock idempotency"
+            why: "도메인 실패 분기 및 멱등성 패턴 식별"
+          - tool: mcp__plugin_oh-my-claudecode_t__lsp_workspace_symbols
+            query: "service repository domain interface"
+            why: "도메인 경계 심볼 선점 로드"
+          - tool: mcp__plugin_context7_context7__query-docs
+            query: "database transaction queue auth backend pattern"
+            why: "공식 백엔드 패턴 참조로 설계 근거 확보"
+        deferred:
+          - tool: posthog
+            reason: "OAuth 유예"
+            fallback: "notion-search 로 내부 제품 지표 메모 + ast_grep_search 로 이벤트 전송 코드 위치 식별"
+          - tool: sentry
+            reason: "OAuth 유예"
+            fallback: "ast_grep_search 로 repo 내 error handling / panic / catch block 패턴 검색 + context7 query-docs 로 언어/프레임워크 공식 error taxonomy 참조"
+          - tool: stripe
+            reason: "OAuth 유예"
+            fallback: "context7 query-docs 로 Stripe API 공식 사양 참조 + ast_grep_search 로 결제 관련 도메인 코드 구조 식별"
+
+  data-analyst:
+    display_name: 데이터 애널리스트
+    aliases: [data]
+    profile: .company-kit/docs/profiles/data.md
+    starter: .company-kit/templates/team-starters/data.md
+    work_dirs:
+      - project-work/00-project
+      - project-work/05-data
+      - project-work/06-erd
+      - project-work/09-decisions
+    routing:
+      keywords: [데이터, data, analytics, metric, metrics, funnel, experiment, ab, retention, cohort, tracking, dashboard]
+      priority_keywords: [report, metric, experiment, analytics]
+      default_support: [growth-marketer, service-planner]
+    brief:
+      mission: 지표 정의, 실험 설계, 데이터 해석을 근거 중심으로 구조화한다.
+      tasks: [metric-definition, experiment-plan, caveat-review]
+      deliverables: [핵심 지표 정의, 실험안, 측정 계획, 데이터 리스크]
+      key_questions:
+        - 무엇을 측정해야 하는가
+        - 어떤 가설을 검증할 것인가
+        - 해석에서 무엇을 과신하면 안 되는가
+      must_provide_evidence:  # v0.3-alpha B2 — data-analyst 매핑
+        minimum_distinct_kinds: 2
+        required_kinds: [product_metric_lookup, external_spec_or_policy]
+        optional_kinds: [experiment_or_feedback_artifact, runtime_log_or_trace]
+        deferred_kinds: [product_metric_lookup]   # PostHog OAuth 미인증 유예
+      mcp:  # R21 (축 1 / Phase 3)
+        minimum_call: 3
+        preferred_tools:
+          - id: mcp__claude_ai_Notion__notion-search
+            rationale: "notion-search: 데이터 애널리스트의 지표 정의·실험 결과 저장소입니다. 이 도구 없이는 기존 지표 맥락·실험 설계 근거를 추측으로 채워 측정 오염의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_oh-my-claudecode_t__ast_grep_search
+            rationale: "ast_grep_search: 데이터 애널리스트의 이벤트 추적 코드 탐색 도구입니다. 이 도구 없이는 실제 이벤트 전송 코드 위치·파라미터를 추측으로 파악하여 지표 신뢰도 품질 저하의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_context7_context7__query-docs
+            rationale: "context7 query-docs: 데이터 애널리스트의 실험 설계·통계 방법론 참조 도구입니다. 이 도구 없이는 A/B 설계·샘플 크기 계산 근거 없이 추측으로 실험안을 구성하여 품질 저하의 위험을 통제할 수 없습니다."
+        prefetch_queries:
+          - tool: mcp__claude_ai_Notion__notion-search
+            query: "지표 정의 실험 결과 funnel retention 대시보드"
+            why: "기존 지표 정의·실험 결과 선점 로드"
+          - tool: mcp__plugin_oh-my-claudecode_t__ast_grep_search
+            query: "track event analytics posthog mixpanel amplitude"
+            why: "이벤트 전송 코드 위치 및 파라미터 식별"
+          - tool: mcp__plugin_context7_context7__query-docs
+            query: "A/B test experiment design sample size statistical significance"
+            why: "실험 설계 공식 방법론 참조"
+        deferred:
+          - tool: posthog
+            reason: "OAuth 유예"
+            fallback: "notion-search 로 내부 제품 지표 메모 + ast_grep_search 로 이벤트 전송 코드 위치 식별"
+
+  growth-marketer:
+    display_name: 그로스 마케터
+    aliases: [marketing]
+    profile: .company-kit/docs/profiles/marketing.md
+    starter: .company-kit/templates/team-starters/marketing.md
+    work_dirs:
+      - project-work/00-project
+      - project-work/01-planning
+      - project-work/02-design
+      - project-work/05-data
+      - project-work/07-assets
+    routing:
+      keywords: [마케팅, growth, retention, campaign, acquisition, message, copy, funnel, crm, ad, seo]
+      priority_keywords: [message, campaign, retention]
+      default_support: [data-analyst, service-planner]
+    brief:
+      mission: 메시지, 채널, 리텐션 전략을 성장 관점에서 구조화한다.
+      tasks: [channel-plan, message-variants, retention-check]
+      deliverables: [메시지 프레임, 채널 전략, 리텐션 실행안, 실험 아이디어]
+      key_questions:
+        - 가장 설득력 있는 메시지는 무엇인가
+        - 어떤 채널이 맞는가
+        - 유입과 리텐션을 어떻게 연결할 것인가
+      must_provide_evidence:  # v0.3-alpha B2 — growth 매핑
+        minimum_distinct_kinds: 2
+        required_kinds: [product_metric_lookup, experiment_or_feedback_artifact]
+        optional_kinds: [external_spec_or_policy, architecture_or_decision_record]
+        deferred_kinds: [product_metric_lookup]   # PostHog OAuth 미인증 유예
+      mcp:  # R21 (축 1 / Phase 3)
+        minimum_call: 3
+        preferred_tools:
+          - id: mcp__claude_ai_Notion__notion-search
+            rationale: "notion-search: 그로스 마케터의 캠페인·리텐션 전략 저장소입니다. 이 도구 없이는 이전 메시지 실험·채널 성과 맥락을 추측으로 채워 전략 오염의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_context7_context7__query-docs
+            rationale: "context7 query-docs: 그로스 마케터의 채널·CRM·SEO 공식 사양 참조 도구입니다. 이 도구 없이는 성장 전략 설계 시 공식 근거 없이 추측으로 채널을 선택하여 품질 저하의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_oh-my-claudecode_t__ast_grep_search
+            rationale: "ast_grep_search: 그로스 마케터의 이벤트·전환 코드 탐색 도구입니다. 이 도구 없이는 실제 구현된 전환 경로·리텐션 트리거를 추측으로 파악하여 캠페인 오염의 위험을 통제할 수 없습니다."
+        prefetch_queries:
+          - tool: mcp__claude_ai_Notion__notion-search
+            query: "캠페인 메시지 채널 리텐션 유입 전환율"
+            why: "이전 캠페인·채널 성과 선점 로드"
+          - tool: mcp__plugin_context7_context7__query-docs
+            query: "growth marketing retention CRM campaign channel SEO"
+            why: "채널·CRM 공식 패턴 참조"
+          - tool: mcp__plugin_oh-my-claudecode_t__ast_grep_search
+            query: "conversion retention trigger notification email push"
+            why: "전환·리텐션 트리거 코드 위치 식별"
+        deferred:
+          - tool: posthog
+            reason: "OAuth 유예"
+            fallback: "notion-search 로 내부 제품 지표·실험 결과 메모 + ast_grep_search 로 이벤트 전송 코드 위치 식별"
+
+  risk-reviewer:
+    display_name: 리스크 리뷰어
+    aliases: [risk, legal-risk]
+    profile: .company-kit/docs/profiles/legal-risk.md
+    starter: .company-kit/templates/team-starters/risk.md
+    work_dirs:
+      - project-work/00-project
+      - project-work/01-planning
+      - project-work/04-backend
+      - project-work/06-erd
+      - project-work/09-decisions
+    routing:
+      keywords: [법무, 리스크, risk, privacy, 개인정보, 규제, legal, contract, compliance, policy, security, terms]
+      priority_keywords: [privacy, legal, contract]
+      default_support: [backend-engineer]
+    brief:
+      mission: 법무, 개인정보, 정책, 계약 리스크를 보수적으로 점검한다.
+      tasks: [privacy-check, policy-check, contract-check]
+      deliverables: [법적 리스크, 확인 필요 조항, 외부 자문 필요 여부, 수정 포인트]
+      key_questions:
+        - 핵심 리스크는 무엇인가
+        - 외부 자문이 필요한가
+        - 어떤 문구나 구조를 바꿔야 하는가
+      must_provide_evidence:  # v0.3-alpha B2 — security 매핑
+        minimum_distinct_kinds: 2
+        required_kinds: [static_vuln_scan, code_symbol_or_reference]
+        optional_kinds: [external_spec_or_policy, dependency_or_sbom, runtime_log_or_trace]
+        deferred_kinds: []
+      mcp:  # R21 (축 1 / Phase 3)
+        minimum_call: 3
+        preferred_tools:
+          - id: mcp__plugin_semgrep-plugin_semgrep__semgrep_scan
+            rationale: "semgrep_scan: 리스크 리뷰어의 정적 취약점 탐지 도구입니다. 이 도구 없이는 개인정보 노출·인증 우회·주입 취약점을 추측으로 판단하여 법적 리스크 오염의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_oh-my-claudecode_t__ast_grep_search
+            rationale: "ast_grep_search: 리스크 리뷰어의 보안 패턴 탐색 도구입니다. 이 도구 없이는 민감 데이터 처리·권한 검사·로깅 패턴을 추측으로 파악하여 컴플라이언스 오염의 위험을 통제할 수 없습니다."
+          - id: mcp__claude_ai_Notion__notion-search
+            rationale: "notion-search: 리스크 리뷰어의 법무·정책 근거 저장소입니다. 이 도구 없이는 기존 컴플라이언스 결정·외부 자문 결과를 추측으로 참조하여 리스크 판단 품질 저하의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_context7_context7__query-docs
+            rationale: "context7 query-docs: 리스크 리뷰어의 규제·표준 참조 도구입니다. 이 도구 없이는 GDPR·개인정보보호법·보안 표준을 추측으로 해석하여 법적 오염의 위험을 통제할 수 없습니다."
+        prefetch_queries:
+          - tool: mcp__plugin_semgrep-plugin_semgrep__semgrep_scan
+            query: "security privacy injection auth"
+            why: "취약점 자동 탐지 선제 실행"
+          - tool: mcp__plugin_oh-my-claudecode_t__ast_grep_search
+            query: "personal data password token secret encrypt"
+            why: "민감 데이터 처리 코드 위치 식별"
+          - tool: mcp__claude_ai_Notion__notion-search
+            query: "법무 컴플라이언스 개인정보 정책 계약 리스크"
+            why: "기존 법무·정책 결정 맥락 선점 로드"
+        deferred:
+          - tool: sentry
+            reason: "OAuth 유예"
+            fallback: "ast_grep_search 로 repo 내 error handling / exception / catch 패턴 검색 + context7 query-docs 로 언어/프레임워크 공식 error taxonomy 참조"
+
+  proposal-writer:
+    display_name: 제안서 작성자
+    aliases: [proposal]
+    profile: .company-kit/docs/profiles/proposal.md
+    starter: .company-kit/templates/team-starters/proposal.md
+    work_dirs:
+      - project-work/00-project
+      - project-work/01-planning
+      - project-work/02-design
+      - project-work/07-assets
+      - project-work/09-decisions
+    routing:
+      keywords: [제안서, proposal, rfp, bid, 공공, 입찰, 발표, 자료, executive, summary, scope]
+      priority_keywords: [sow, proposal, public, bid]
+      default_support: [strategy-planner, risk-reviewer, service-planner]
+    brief:
+      mission: 제안서 구조, 메시지, 증거 흐름을 제출 문서 관점으로 정리한다.
+      tasks: [structure, message, evidence-review]
+      deliverables: [제안서 골격, 핵심 메시지, 제출 초안, 보완 요청 목록]
+      key_questions:
+        - 평가자가 어떤 순서로 읽어야 하는가
+        - 가장 강한 차별점은 무엇인가
+        - 실행안을 어떻게 설득력 있게 보여줄 것인가
+      must_provide_evidence:  # v0.3-alpha B2 — stub_worker default 매핑
+        minimum_distinct_kinds: 2
+        required_kinds: [repo_text_or_diff, external_spec_or_policy]
+        optional_kinds: [code_symbol_or_reference, architecture_or_decision_record]
+        deferred_kinds: []
+      mcp:  # R21 (축 1 / Phase 3)
+        minimum_call: 3
+        preferred_tools:
+          - id: mcp__claude_ai_Notion__notion-search
+            rationale: "notion-search: 제안서 작성자의 근거·차별점 저장소입니다. 이 도구 없이는 제안 맥락·이전 RFP 결과·심사 기준을 추측으로 채워 제안서 오염의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_context7_context7__query-docs
+            rationale: "context7 query-docs: 제안서 작성자의 외부 규격·공공 입찰 기준 참조 도구입니다. 이 도구 없이는 제출 요건·평가 기준을 추측으로 해석하여 제안서 품질 저하의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_oh-my-claudecode_t__ast_grep_search
+            rationale: "ast_grep_search: 제안서 작성자의 기술 구현 근거 탐색 도구입니다. 이 도구 없이는 실제 구현 범위·기술 스택 증거를 추측으로 기술하여 제안서 신뢰도 오염의 위험을 통제할 수 없습니다."
+        prefetch_queries:
+          - tool: mcp__claude_ai_Notion__notion-search
+            query: "제안서 RFP 입찰 차별점 평가 기준 요구사항"
+            why: "제안 맥락 및 이전 RFP 결과 선점 로드"
+          - tool: mcp__plugin_context7_context7__query-docs
+            query: "proposal RFP bid requirements evaluation criteria public sector"
+            why: "공공 입찰 기준 공식 참조"
+          - tool: mcp__plugin_oh-my-claudecode_t__ast_grep_search
+            query: "feature implementation stack architecture"
+            why: "기술 구현 증거 코드 식별"
+        deferred:
+          - tool: figma
+            reason: "OAuth 유예"
+            fallback: "pencil batch_get 으로 .pen 디자인 파일 조회 + notion-search 로 디자인 의사결정 메모 참조"
+          - tool: stripe
+            reason: "OAuth 유예"
+            fallback: "context7 query-docs 로 결제 API 공식 사양 참조 + notion-search 로 결제 관련 의사결정 메모 검색"
+
+  qa-reviewer:
+    display_name: QA 리뷰어
+    aliases: [qa, test-review]
+    profile: .company-kit/docs/profiles/engineering.md
+    starter: .company-kit/templates/team-starters/engineering.md
+    work_dirs:
+      - project-work/00-project
+      - project-work/03-frontend
+      - project-work/04-backend
+      - project-work/08-reviews
+    routing:
+      keywords: [qa, test, testing, regression, acceptance, review, checklist, bug, scenario, e2e]
+      priority_keywords: [verify, regression, acceptance]
+      default_support: [frontend-engineer, backend-engineer]
+    brief:
+      mission: 검증 시나리오, 회귀 위험, acceptance 기준을 리뷰 관점으로 정리한다.
+      tasks: [scenario-map, regression-risk, acceptance-review]
+      deliverables: [시나리오 목록, 회귀 리스크, acceptance 기준, 테스트 메모]
+      key_questions:
+        - 무엇을 반드시 검증해야 하는가
+        - 어떤 회귀가 가장 위험한가
+        - 승인 기준은 무엇인가
+      must_provide_evidence:  # v0.3-alpha B2 — stub_worker default 매핑 (R6 결정: 시나리오 텍스트 중심)
+        minimum_distinct_kinds: 2
+        required_kinds: [repo_text_or_diff, external_spec_or_policy]
+        optional_kinds: [code_symbol_or_reference, architecture_or_decision_record]
+        deferred_kinds: []
+      mcp:  # R21 (축 1 / Phase 3)
+        minimum_call: 3
+        preferred_tools:
+          - id: mcp__plugin_oh-my-claudecode_t__ast_grep_search
+            rationale: "ast_grep_search: QA 리뷰어의 코드 기반 시나리오 탐색 도구입니다. 이 도구 없이는 회귀 위험 경로·엣지 케이스·예외 처리를 추측으로 파악하여 검증 오염의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_semgrep-plugin_semgrep__semgrep_scan
+            rationale: "semgrep_scan: QA 리뷰어의 정적 회귀 탐지 도구입니다. 이 도구 없이는 코드 변경으로 인한 취약점·패턴 회귀를 추측으로 판단하여 acceptance 기준 오염의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_oh-my-claudecode_t__lsp_find_references
+            rationale: "lsp_find_references: QA 리뷰어의 변경 영향 범위 분석 도구입니다. 이 도구 없이는 테스트 대상 코드의 호출 관계·의존성을 추측으로 파악하여 회귀 매트릭스 품질 저하의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_context7_context7__query-docs
+            rationale: "context7 query-docs: QA 리뷰어의 테스트 패턴·acceptance 기준 참조 도구입니다. 이 도구 없이는 테스트 설계 근거 없이 추측으로 시나리오를 구성하여 품질 저하의 위험을 통제할 수 없습니다."
+        prefetch_queries:
+          - tool: mcp__plugin_oh-my-claudecode_t__ast_grep_search
+            query: "test spec describe it expect assert mock"
+            why: "기존 테스트 패턴 및 커버리지 공백 식별"
+          - tool: mcp__plugin_semgrep-plugin_semgrep__semgrep_scan
+            query: "security regression pattern"
+            why: "정적 회귀 위험 선제 탐지"
+          - tool: mcp__plugin_oh-my-claudecode_t__lsp_find_references
+            query: "changed function method class"
+            why: "변경 대상 코드의 downstream 영향 범위 식별"
+        deferred:
+          - tool: playwright
+            reason: "미등록 유예"
+            fallback: "ast_grep_search 로 기존 e2e/integration 테스트 코드 위치 식별 + context7 query-docs 로 Playwright 공식 테스트 패턴 참조"
+          - tool: sentry
+            reason: "OAuth 유예"
+            fallback: "ast_grep_search 로 repo 내 error handling / catch / exception 패턴 검색 + lsp_find_references 로 에러 전파 경로 추적"
+
+  # ──────────────────────────────────────────
+  # R28 (축 3 / Phase A+B): worker taxonomy 확장 — 4 신규 first-class specialists
+  # proposal 출처: .omx/plans/template-specialization-proposal-2026-04-09.md
+  # 경계: 기존 11 워커 무수정 (append-only). 축 2 자산 (notification-policy / slack / sentinel / timeout)
+  # 0 터치. R26 영구 결정 3 건 연장.
+  # ──────────────────────────────────────────
+
+  ux-researcher:
+    display_name: UX 리서처
+    aliases: [research, user-research, ux-research]
+    profile: .company-kit/docs/profiles/ux-research.md
+    starter: .company-kit/templates/team-starters/ux-research.md
+    work_dirs:
+      - project-work/00-project
+      - project-work/01-planning
+      - project-work/02-design
+    routing:
+      keywords: [리서치, 인터뷰, 사용자 조사, pain point, usability, validation, 가설 검증, user research, interview, survey, insight, jtbd]
+      priority_keywords: [리서치, interview, usability, validation, 가설]
+      default_support: [service-planner, ux-designer, data-analyst]
+    brief:
+      mission: 의사결정에 영향을 주는 가설을 선별하고 검증하여 confidence-tagged insight 를 제공한다.
+      tasks: [research-plan, synthesis-matrix, usability-risk]
+      deliverables: [Research Plan, Insight Memo, Synthesis Matrix, Usability Risk Heatmap]
+      key_questions:
+        - 이 리서치가 어떤 의사결정을 바꾸는가
+        - 가설과 반증 조건은 무엇인가
+        - 표본이 대상 segment 를 대표하는가
+      must_provide_evidence:  # R28 — 리서치 워커는 외부 원문 + 실험 결과 2 종 필수
+        minimum_distinct_kinds: 2
+        required_kinds: [experiment_or_feedback_artifact, external_spec_or_policy]
+        optional_kinds: [product_metric_lookup, runtime_log_or_trace]
+        deferred_kinds: []
+      mcp:  # R28 (축 3 / Phase B) — 리서치 전용 도구 stack
+        minimum_call: 3
+        preferred_tools:
+          - id: mcp__plugin_context7_context7__query-docs
+            rationale: "context7 query-docs: UX 리서처의 방법론·업계 benchmark·경쟁사 UX pattern 참조 도구입니다. 이 도구 없이는 리서치 방법 선택을 추측으로 판단하여 의사결정 오염의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_oh-my-claudecode_t__session_search
+            rationale: "session_search: UX 리서처의 과거 리서치 기록·synthesis 이력 조회 도구입니다. 이 도구 없이는 매 리서치를 첫 리서치로 시작하여 중복 조사의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_oh-my-claudecode_t__notepad_write_priority
+            rationale: "notepad_write_priority: UX 리서처의 insight 기록 도구입니다. 이 도구 없이는 synthesis matrix · confidence tagging 을 임시 메모에 흩뿌려 조직 기억 구축의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_oh-my-claudecode_t__notepad_read
+            rationale: "notepad_read: UX 리서처의 이전 세션 insight 조회 도구입니다. 이 도구 없이는 recommendation owner tracking 을 추측으로 판단하여 리서치-의사결정 연결성 오염의 위험을 통제할 수 없습니다."
+        prefetch_queries:
+          - tool: mcp__plugin_context7_context7__query-docs
+            query: "user research interview protocol usability testing WCAG accessibility"
+            why: "리서치 방법론·가이드라인 참조 선점"
+          - tool: mcp__plugin_oh-my-claudecode_t__session_search
+            query: "research insight synthesis recommendation"
+            why: "과거 리서치 이력 및 recommendation 상태 조회"
+          - tool: mcp__plugin_oh-my-claudecode_t__notepad_read
+            query: "ux-research"
+            why: "리서치 메모 프리로드"
+        deferred:
+          - tool: posthog
+            reason: "OAuth 유예"
+            fallback: "notepad_read 로 analytics 관련 수동 메모 조회 + context7 query-docs 로 product analytics 방법론 참조"
+          - tool: figma
+            reason: "OAuth 유예"
+            fallback: "notepad 로 프로토타입 테스트 결과 수동 기록 + session_search 로 이전 usability 테스트 이력 참조"
+
+  ux-designer:
+    display_name: UX 디자이너
+    aliases: [uxd, interaction-designer, ia-designer]
+    profile: .company-kit/docs/profiles/ux-design.md
+    starter: .company-kit/templates/team-starters/ux-design.md
+    work_dirs:
+      - project-work/00-project
+      - project-work/02-design
+      - project-work/03-frontend
+    routing:
+      keywords: [ux, user flow, wireframe, interaction, 화면 설계, 상태 설계, flow, 와이어, 인터랙션, user experience, ux design]
+      priority_keywords: [ux, wireframe, interaction, flow, 상태]
+      default_support: [service-planner, frontend-engineer, ux-researcher]
+    brief:
+      mission: user task 를 단일하게 정의하고 6 상태 매트릭스 · interaction spec · reversibility 규칙을 갖춘 interaction spec 을 설계한다.
+      tasks: [state-matrix, interaction-spec, component-reuse-map]
+      deliverables: [State Matrix, Interaction Spec, Reversibility Table, Handoff Annotation]
+      key_questions:
+        - 사용자가 달성하려는 단일 task 는 무엇인가
+        - 6 상태 (loading/empty/partial/success/error/disabled) 가 모두 그려졌는가
+        - destructive action 에 reversibility 가 있는가
+      must_provide_evidence:  # R28 — 디자인 워커는 디자인 원문 + 외부 규격 2 종 필수
+        minimum_distinct_kinds: 2
+        required_kinds: [repo_text_or_diff, external_spec_or_policy]
+        optional_kinds: [experiment_or_feedback_artifact, architecture_or_decision_record]
+        deferred_kinds: []
+      mcp:  # R28 (축 3 / Phase B) — 디자인 전용 도구 stack
+        minimum_call: 3
+        preferred_tools:
+          - id: mcp__pencil__batch_get
+            rationale: "pencil batch_get: UX 디자이너의 .pen 디자인 파일 조회 도구입니다. 이 도구 없이는 컴포넌트 구조·레이아웃·state variant 를 추측으로 판단하여 design drift 의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_context7_context7__query-docs
+            rationale: "context7 query-docs: UX 디자이너의 WCAG·HIG·Material·디자인 시스템 가이드라인 참조 도구입니다. 이 도구 없이는 accessibility 기준·상호작용 패턴을 주관으로 판단하여 품질 저하의 위험을 통제할 수 없습니다."
+          - id: mcp__pencil__batch_design
+            rationale: "pencil batch_design: UX 디자이너의 .pen 파일 편집 도구입니다. 이 도구 없이는 state matrix · component variant 를 파일 외부에 흩뿌려 SSOT 오염의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_oh-my-claudecode_t__notepad_write_priority
+            rationale: "notepad_write_priority: UX 디자이너의 interaction spec · handoff annotation 기록 도구입니다. 이 도구 없이는 frontend-engineer 로의 handoff 를 임시 메모로 대체하여 구현 drift 의 위험을 통제할 수 없습니다."
+        prefetch_queries:
+          - tool: mcp__pencil__batch_get
+            query: "component state variant"
+            why: ".pen 디자인 파일의 기존 컴포넌트·variant 구조 선점"
+          - tool: mcp__plugin_context7_context7__query-docs
+            query: "WCAG ARIA keyboard navigation design system tokens"
+            why: "접근성 · 디자인 시스템 가이드라인 참조"
+        deferred:
+          - tool: figma
+            reason: "OAuth 유예"
+            fallback: "pencil batch_get 으로 .pen 디자인 파일 직접 조회 + notepad_read 로 디자인 의사결정 메모 참조"
+          - tool: playwright
+            reason: "미등록 유예"
+            fallback: "notepad 로 live UX 관찰 메모 기록 + context7 query-docs 로 interaction 패턴 참조"
+
+  content-strategist:
+    display_name: 콘텐츠 전략가
+    aliases: [content, messaging, copy-strategist]
+    profile: .company-kit/docs/profiles/content.md
+    starter: .company-kit/templates/team-starters/content.md
+    work_dirs:
+      - project-work/00-project
+      - project-work/01-planning
+      - project-work/02-design
+    routing:
+      keywords: [콘텐츠, 카피, 메시지, message, copy, content, 문구, 랜딩 카피, onboarding copy, microcopy, cta, tagline]
+      priority_keywords: [콘텐츠, 카피, message, copy, microcopy]
+      default_support: [ux-designer, growth-marketer, proposal-writer]
+    brief:
+      mission: 4 계층 message hierarchy · voice & tone matrix · copy SSOT · 6 상태 microcopy · CTA hierarchy 를 설계하여 행동 유발 메시지 시스템을 구축한다.
+      tasks: [message-architecture, copy-ssot, microcopy-system]
+      deliverables: [Message Hierarchy, Voice & Tone Matrix, Copy SSOT 테이블, State Microcopy, CTA Hierarchy]
+      key_questions:
+        - 이 메시지가 촉발해야 할 구체적 행동은 무엇인가
+        - Primary 한 줄로 핵심 가치가 전달되는가
+        - drift 없이 다른 touchpoint 로 전파되는가
+      must_provide_evidence:  # R28 — 콘텐츠 워커는 외부 규격 + 저장소 텍스트 2 종 필수
+        minimum_distinct_kinds: 2
+        required_kinds: [external_spec_or_policy, repo_text_or_diff]
+        optional_kinds: [product_metric_lookup, experiment_or_feedback_artifact]
+        deferred_kinds: []
+      mcp:  # R28 (축 3 / Phase B) — 콘텐츠 전용 도구 stack
+        minimum_call: 3
+        preferred_tools:
+          - id: mcp__plugin_context7_context7__query-docs
+            rationale: "context7 query-docs: 콘텐츠 전략가의 관례·금지어·업계 benchmark·regulatory 문구 참조 도구입니다. 이 도구 없이는 voice & tone 결정을 주관으로 판단하여 brand drift 의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_oh-my-claudecode_t__notepad_write_priority
+            rationale: "notepad_write_priority: 콘텐츠 전략가의 copy SSOT 기록 도구입니다. 이 도구 없이는 동일 메시지가 landing/email/in-app 에 drift 되어 SSOT 오염의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_oh-my-claudecode_t__session_search
+            rationale: "session_search: 콘텐츠 전략가의 과거 copy 이력·A/B 결과 조회 도구입니다. 이 도구 없이는 매 세션을 새 브랜드로 시작하여 brand voice 오염의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_oh-my-claudecode_t__notepad_read
+            rationale: "notepad_read: 콘텐츠 전략가의 기존 brand dictionary · voice guide 조회 도구입니다. 이 도구 없이는 single term per concept 규칙을 유지할 수 없어 synonym drift 의 위험을 통제할 수 없습니다."
+        prefetch_queries:
+          - tool: mcp__plugin_context7_context7__query-docs
+            query: "copy style guide voice tone microcopy error message"
+            why: "업계 카피 가이드·관례 참조 선점"
+          - tool: mcp__plugin_oh-my-claudecode_t__notepad_read
+            query: "brand voice copy ssot"
+            why: "기존 copy SSOT · brand dictionary 프리로드"
+        deferred:
+          - tool: posthog
+            reason: "OAuth 유예"
+            fallback: "notepad_read 로 기존 A/B 결과 메모 조회 + context7 query-docs 로 conversion-optimized copy 패턴 참조"
+          - tool: notion
+            reason: "OAuth 유예 (workspace 개별 인증)"
+            fallback: "notepad 로 copy SSOT 를 harness 내부 메모로 대체 + session_search 로 이전 카피 이력 추적"
+
+  graphic-designer:
+    display_name: 그래픽 디자이너
+    aliases: [graphics, visual-designer, brand-designer]
+    profile: .company-kit/docs/profiles/graphics.md
+    starter: .company-kit/templates/team-starters/graphics.md
+    work_dirs:
+      - project-work/00-project
+      - project-work/02-design
+      - project-work/07-assets
+    routing:
+      keywords: [그래픽, 비주얼, 브랜드, brand, visual, 시안, key visual, 제안서 시각화, 아이덴티티, logo, typography, 캠페인 크리에이티브, poster]
+      priority_keywords: [비주얼, brand, key visual, 아이덴티티, 시안]
+      default_support: [content-strategist, growth-marketer, proposal-writer]
+    brief:
+      mission: emotion · belief · action 을 시각 언어로 번역하고 brand token · 5 포맷 derivative · asset governance 를 갖춘 Visual System 을 구축한다.
+      tasks: [brand-token, key-visual-brief, asset-matrix]
+      deliverables: [Brand Token 참조표, Key Visual Brief, Master File + Export Preset, Asset Matrix, License Audit Log]
+      key_questions:
+        - 이 비주얼이 촉발해야 할 emotion / belief / action 은 무엇인가
+        - brand token 이 명시되어 있는가
+        - 5 포맷 derivative 가 모두 준비되었는가
+      must_provide_evidence:  # R28 — 그래픽 워커는 외부 규격 + 저장소 텍스트 2 종 필수
+        minimum_distinct_kinds: 2
+        required_kinds: [external_spec_or_policy, repo_text_or_diff]
+        optional_kinds: [architecture_or_decision_record, experiment_or_feedback_artifact]
+        deferred_kinds: []
+      mcp:  # R28 (축 3 / Phase B) — 그래픽 전용 도구 stack
+        minimum_call: 3
+        preferred_tools:
+          - id: mcp__pencil__batch_get
+            rationale: "pencil batch_get: 그래픽 디자이너의 .pen 브랜드 자산·디자인 시스템 조회 도구입니다. 이 도구 없이는 brand token·기존 key visual 을 추측으로 판단하여 token drift 의 위험을 통제할 수 없습니다."
+          - id: mcp__pencil__batch_design
+            rationale: "pencil batch_design: 그래픽 디자이너의 .pen 파일 편집 도구입니다. 이 도구 없이는 master file·derivative 구조를 파일 외부에 흩뿌려 SSOT 오염의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_context7_context7__query-docs
+            rationale: "context7 query-docs: 그래픽 디자이너의 타이포·컬러이론·경쟁사 branding case·폰트 라이선스 참조 도구입니다. 이 도구 없이는 brand system 결정을 주관으로 판단하여 license 위반의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_oh-my-claudecode_t__notepad_write_priority
+            rationale: "notepad_write_priority: 그래픽 디자이너의 brand guideline delta · license audit log 기록 도구입니다. 이 도구 없이는 brand 변경 이력을 임시 메모로 대체하여 조직 자산 drift 의 위험을 통제할 수 없습니다."
+        prefetch_queries:
+          - tool: mcp__pencil__batch_get
+            query: "brand token color typography"
+            why: ".pen 브랜드 파일의 기존 token · key visual 선점"
+          - tool: mcp__plugin_context7_context7__query-docs
+            query: "font license typography accessibility WCAG contrast brand system"
+            why: "타이포·라이선스·접근성 기준 참조"
+        deferred:
+          - tool: figma
+            reason: "OAuth 유예"
+            fallback: "pencil batch_get/batch_design 으로 .pen 디자인 파일 직접 조회·편집 + notepad 로 asset matrix 기록"
+          - tool: posthog
+            reason: "OAuth 유예"
+            fallback: "notepad_read 로 기존 캠페인 A/B 결과 메모 조회 + context7 query-docs 로 visual A/B 패턴 참조"
+
+  # ── 축 4: 게임 개발 워커 (R30+) ──
+
+  game-director:
+    display_name: 게임 디렉터
+    aliases: [game-production]
+    profile: .company-kit/docs/profiles/game-design.md
+    starter: .company-kit/templates/team-starters/game-design.md
+    work_dirs:
+      - project-work/00-project
+      - project-work/01-planning
+      - project-work/11-game-design
+      - project-work/12-game-production
+    routing:
+      keywords: [게임, 프로덕션, game, production, creative, direction, milestone, 마일스톤, 크리에이티브, 게임 기획, game project]
+      priority_keywords: [game production, milestone, 크리에이티브]
+      default_support: [game-designer, strategy-planner]
+    brief:
+      mission: 게임 프로덕션 총괄, 크리에이티브 방향을 설정하고 마일스톤을 관리한다.
+      tasks: [production-plan, milestone-review, creative-direction]
+      deliverables: [프로덕션 계획, 마일스톤, 크리에이티브 방향, 리스크 메모]
+      key_questions:
+        - 프로젝트의 핵심 재미(core fun)는 무엇인가
+        - 마일스톤 간 의존성과 크리티컬 패스는 무엇인가
+        - 현재 리소스로 어디까지 달성 가능한가
+      must_provide_evidence:
+        minimum_distinct_kinds: 2
+        required_kinds: [repo_text_or_diff, architecture_or_decision_record]
+        optional_kinds: [external_spec_or_policy, experiment_or_feedback_artifact]
+        deferred_kinds: []
+      mcp:  # R28 (축 3 / Phase B)
+        minimum_call: 3
+        preferred_tools:
+          - id: mcp__claude_ai_Notion__notion-search
+            rationale: "notion-search: 게임 디렉터의 마일스톤·크리에이티브 결정 저장소입니다. 이 도구 없이는 이전 방향 결정을 추측으로 판단하여 프로덕션 오염의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_context7_context7__query-docs
+            rationale: "context7 query-docs: 게임 디렉터의 게임 엔진·프로덕션 방법론 참조 도구입니다. 이 도구 없이는 프로덕션 파이프라인·엔진 제약을 추측으로 판단하여 마일스톤 품질 저하의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_oh-my-claudecode_t__ast_grep_search
+            rationale: "ast_grep_search: 게임 디렉터의 프로젝트 구조 탐색 도구입니다. 이 도구 없이는 모듈 경계·의존성 범위를 추측으로 파악하여 프로덕션 오염의 위험을 통제할 수 없습니다."
+        prefetch_queries:
+          - tool: mcp__claude_ai_Notion__notion-search
+            query: "게임 프로덕션 마일스톤 크리에이티브 방향"
+            why: "기존 프로덕션 결정 맥락 선점 로드"
+          - tool: mcp__plugin_context7_context7__query-docs
+            query: "game production pipeline milestone management"
+            why: "프로덕션 방법론 참조"
+          - tool: mcp__plugin_oh-my-claudecode_t__ast_grep_search
+            query: "game config milestone schedule"
+            why: "프로젝트 구조 식별"
+        deferred:
+          - tool: posthog
+            reason: "OAuth 유예"
+            fallback: "notion-search 로 내부 플레이테스트 결과 메모 + ast_grep_search 로 이벤트 코드 식별"
+
+  game-designer:
+    display_name: 게임 디자이너
+    aliases: [gdd, game-system]
+    profile: .company-kit/docs/profiles/game-design.md
+    starter: .company-kit/templates/team-starters/game-design.md
+    work_dirs:
+      - project-work/00-project
+      - project-work/11-game-design
+      - project-work/12-game-production
+    routing:
+      keywords: [GDD, 게임 디자인, game, design, system, 시스템 설계, 밸런싱, balancing, 이코노미, economy, combat, 전투, 메카닉, mechanic]
+      priority_keywords: [GDD, 밸런싱, 이코노미, game design system]
+      default_support: [level-designer, game-programmer, data-analyst]
+    brief:
+      mission: GDD, 시스템 설계, 이코노미, 밸런싱을 통합적으로 구조화한다.
+      tasks: [gdd-draft, system-design, balance-sheet, economy-model]
+      deliverables: [GDD, 시스템 설계서, 밸런스 시트, 이코노미 모델]
+      key_questions:
+        - 핵심 루프(core loop)가 반복 플레이를 유도하는가
+        - 시스템 간 피드백 루프가 균형 잡혀 있는가
+        - 플레이어 진행 곡선이 자연스러운가
+      must_provide_evidence:
+        minimum_distinct_kinds: 2
+        required_kinds: [repo_text_or_diff, architecture_or_decision_record]
+        optional_kinds: [experiment_or_feedback_artifact, external_spec_or_policy]
+        deferred_kinds: []
+      mcp:  # R28 (축 3 / Phase B)
+        minimum_call: 3
+        preferred_tools:
+          - id: mcp__claude_ai_Notion__notion-search
+            rationale: "notion-search: 게임 디자이너의 GDD·시스템 설계 저장소입니다. 이 도구 없이는 기존 시스템 설계·밸런스 결정을 추측으로 판단하여 GDD 오염의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_context7_context7__query-docs
+            rationale: "context7 query-docs: 게임 디자인 패턴·밸런싱 참조 도구입니다. 이 도구 없이는 코어 루프·이코노미 설계 근거 없이 추측으로 시스템을 구성하여 품질 저하의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_oh-my-claudecode_t__ast_grep_search
+            rationale: "ast_grep_search: 기존 게임 시스템 코드 탐색 도구입니다. 이 도구 없이는 기존 메카닉·밸런스 코드를 발견하지 못해 시스템 설계를 추측으로 내려 오염의 위험을 통제할 수 없습니다."
+        prefetch_queries:
+          - tool: mcp__claude_ai_Notion__notion-search
+            query: "GDD 시스템 설계 밸런싱 이코노미"
+            why: "기존 설계 문서 선점 로드"
+          - tool: mcp__plugin_context7_context7__query-docs
+            query: "game design document system balance economy"
+            why: "게임 디자인 패턴 참조"
+          - tool: mcp__plugin_oh-my-claudecode_t__ast_grep_search
+            query: "game system mechanic balance config"
+            why: "기존 시스템 코드 식별"
+        deferred:
+          - tool: posthog
+            reason: "OAuth 유예"
+            fallback: "notion-search 로 플레이테스트 피드백 메모 + ast_grep_search 로 밸런스 데이터 코드 식별"
+
+  level-designer:
+    display_name: 레벨 디자이너
+    aliases: [level-design]
+    profile: .company-kit/docs/profiles/game-design.md
+    starter: .company-kit/templates/team-starters/game-design.md
+    work_dirs:
+      - project-work/00-project
+      - project-work/11-game-design
+    routing:
+      keywords: [레벨 디자인, level, design, encounter, 인카운터, 페이싱, pacing, 환경 퍼즐, environment, puzzle, map, 맵]
+      priority_keywords: [level design, 인카운터, encounter, pacing]
+      default_support: [game-designer, game-artist]
+    brief:
+      mission: 레벨 구조, 인카운터 설계, 페이싱, 환경 퍼즐을 설계한다.
+      tasks: [level-layout, encounter-table, pacing-chart]
+      deliverables: [레벨 레이아웃, 인카운터 테이블, 페이싱 차트, 환경 퍼즐 설계]
+      key_questions:
+        - 플레이어 동선이 직관적인가
+        - 난이도 곡선이 페이싱과 맞는가
+        - 공간이 전투·탐색·서사를 균형 있게 지원하는가
+      must_provide_evidence:
+        minimum_distinct_kinds: 2
+        required_kinds: [repo_text_or_diff, architecture_or_decision_record]
+        optional_kinds: [experiment_or_feedback_artifact]
+        deferred_kinds: []
+      mcp:  # R28 (축 3 / Phase B)
+        minimum_call: 3
+        preferred_tools:
+          - id: mcp__claude_ai_Notion__notion-search
+            rationale: "notion-search: 레벨 디자이너의 레벨 설계 문서 저장소입니다. 이 도구 없이는 기존 레벨 구조·인카운터 설계를 추측으로 판단하여 레벨 설계 오염의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_context7_context7__query-docs
+            rationale: "context7 query-docs: 레벨 디자인 패턴 참조 도구입니다. 이 도구 없이는 페이싱·환경 퍼즐 설계 근거 없이 추측으로 레벨을 구성하여 품질 저하의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_oh-my-claudecode_t__ast_grep_search
+            rationale: "ast_grep_search: 레벨 데이터·맵 구조 코드 탐색 도구입니다. 이 도구 없이는 기존 맵·스폰 데이터를 발견하지 못해 레벨 구조를 추측으로 설계하여 오염의 위험을 통제할 수 없습니다."
+        prefetch_queries:
+          - tool: mcp__claude_ai_Notion__notion-search
+            query: "레벨 디자인 인카운터 페이싱 맵"
+            why: "기존 레벨 설계 문서 선점 로드"
+          - tool: mcp__plugin_context7_context7__query-docs
+            query: "level design encounter pacing environment puzzle"
+            why: "레벨 디자인 방법론 참조"
+          - tool: mcp__plugin_oh-my-claudecode_t__ast_grep_search
+            query: "level map encounter spawn"
+            why: "레벨 데이터 코드 식별"
+        deferred:
+          - tool: posthog
+            reason: "OAuth 유예"
+            fallback: "notion-search 로 플레이테스트 히트맵 메모 검색"
+
+  narrative-designer:
+    display_name: 내러티브 디자이너
+    aliases: [narrative, story]
+    profile: .company-kit/docs/profiles/game-design.md
+    starter: .company-kit/templates/team-starters/game-design.md
+    work_dirs:
+      - project-work/00-project
+      - project-work/11-game-design
+    routing:
+      keywords: [내러티브, narrative, story, 스토리, 다이얼로그, dialogue, 분기, branching, 월드빌딩, worldbuilding, lore, 로어]
+      priority_keywords: [narrative, 다이얼로그, dialogue, story, 월드빌딩]
+      default_support: [game-designer, content-strategist]
+    brief:
+      mission: 스토리, 다이얼로그, 분기 서사, 월드빌딩을 설계한다.
+      tasks: [story-outline, dialogue-tree, lore-document, branching-map]
+      deliverables: [스토리 아웃라인, 다이얼로그 트리, 로어 문서, 분기 서사 맵]
+      key_questions:
+        - 서사가 게임플레이와 유기적으로 연결되는가
+        - 분기 선택이 의미 있는 결과를 만드는가
+        - 월드빌딩이 일관된 내부 논리를 가지는가
+      must_provide_evidence:
+        minimum_distinct_kinds: 2
+        required_kinds: [repo_text_or_diff, architecture_or_decision_record]
+        optional_kinds: [external_spec_or_policy, experiment_or_feedback_artifact]
+        deferred_kinds: []
+      mcp:  # R28 (축 3 / Phase B)
+        minimum_call: 3
+        preferred_tools:
+          - id: mcp__claude_ai_Notion__notion-search
+            rationale: "notion-search: 내러티브 디자이너의 스토리·로어 문서 저장소입니다. 이 도구 없이는 기존 세계관·스토리 결정을 추측으로 판단하여 내러티브 오염의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_context7_context7__query-docs
+            rationale: "context7 query-docs: 내러티브 디자인 패턴·다이얼로그 시스템 참조 도구입니다. 이 도구 없이는 분기 구조·다이얼로그 패턴을 추측으로 설계하여 서사 품질 저하의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_oh-my-claudecode_t__ast_grep_search
+            rationale: "ast_grep_search: 다이얼로그·스토리 데이터 코드 탐색 도구입니다. 이 도구 없이는 기존 퀘스트·다이얼로그 데이터를 발견하지 못해 서사를 추측으로 구성하여 오염의 위험을 통제할 수 없습니다."
+        prefetch_queries:
+          - tool: mcp__claude_ai_Notion__notion-search
+            query: "스토리 내러티브 다이얼로그 로어 월드빌딩"
+            why: "기존 서사 문서 선점 로드"
+          - tool: mcp__plugin_context7_context7__query-docs
+            query: "narrative design dialogue tree branching story worldbuilding"
+            why: "내러티브 디자인 방법론 참조"
+          - tool: mcp__plugin_oh-my-claudecode_t__ast_grep_search
+            query: "dialogue story quest narrative"
+            why: "서사 데이터 코드 식별"
+        deferred:
+          - tool: posthog
+            reason: "OAuth 유예"
+            fallback: "notion-search 로 플레이어 선택 분석 메모 검색"
+
+  game-programmer:
+    display_name: 게임 프로그래머
+    aliases: [gameplay-code]
+    profile: .company-kit/docs/profiles/game-engineering.md
+    starter: .company-kit/templates/team-starters/game-dev.md
+    work_dirs:
+      - project-work/00-project
+      - project-work/04-backend
+      - project-work/12-game-production
+    routing:
+      keywords: [게임플레이, gameplay, 로직, logic, AI, 네트워킹, networking, 물리, physics, multiplayer, 멀티플레이어, game code]
+      priority_keywords: [gameplay, logic, networking, physics, AI, game code]
+      default_support: [unity-engineer, unreal-engineer, game-qa]
+    brief:
+      mission: 게임플레이 로직, AI, 네트워킹, 물리 시스템을 설계한다.
+      tasks: [architecture-design, code-structure, prototype, tech-risk]
+      deliverables: [아키텍처 설계, 코드 구조, 기술 리스크, 프로토타입]
+      key_questions:
+        - 엔진 선택이 요구사항에 적합한가
+        - 네트워크 모델이 타겟 동시접속을 감당하는가
+        - 성능 병목이 예상되는 시스템은 어디인가
+      must_provide_evidence:
+        minimum_distinct_kinds: 2
+        required_kinds: [code_symbol_or_reference, repo_text_or_diff]
+        optional_kinds: [runtime_log_or_trace, architecture_or_decision_record]
+        deferred_kinds: []
+      mcp:  # R28 (축 3 / Phase B)
+        minimum_call: 3
+        preferred_tools:
+          - id: mcp__plugin_oh-my-claudecode_t__ast_grep_search
+            rationale: "ast_grep_search: 게임 프로그래머의 코드 구조 탐색 핵심 도구입니다. 이 도구 없이는 게임플레이 로직·물리·AI 구조를 추측으로 파악하여 아키텍처 오염의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_context7_context7__query-docs
+            rationale: "context7 query-docs: 게임 엔진 API·네트워킹 프로토콜 참조 도구입니다. 이 도구 없이는 엔진 API·네트워크 패턴을 추측으로 구현하여 품질 저하의 위험을 통제할 수 없습니다."
+          - id: mcp__claude_ai_Notion__notion-search
+            rationale: "notion-search: 기술 설계 결정 문서 저장소입니다. 이 도구 없이는 기존 기술 결정·성능 기준을 추측으로 판단하여 설계 오염의 위험을 통제할 수 없습니다."
+        prefetch_queries:
+          - tool: mcp__plugin_oh-my-claudecode_t__ast_grep_search
+            query: "gameplay controller manager system"
+            why: "게임플레이 코드 구조 식별"
+          - tool: mcp__plugin_context7_context7__query-docs
+            query: "game programming architecture networking physics AI"
+            why: "게임 프로그래밍 패턴 참조"
+          - tool: mcp__claude_ai_Notion__notion-search
+            query: "게임 아키텍처 기술 설계 네트워킹"
+            why: "기존 기술 결정 맥락 로드"
+        deferred:
+          - tool: posthog
+            reason: "OAuth 유예"
+            fallback: "ast_grep_search 로 성능 로깅 코드 식별 + notion-search 로 성능 벤치마크 메모 검색"
+
+  unity-engineer:
+    display_name: Unity 엔지니어
+    aliases: [unity, dots]
+    profile: .company-kit/docs/profiles/game-engineering.md
+    starter: .company-kit/templates/team-starters/game-dev.md
+    work_dirs:
+      - project-work/00-project
+      - project-work/04-backend
+      - project-work/12-game-production
+    routing:
+      keywords: [Unity, 유니티, C#, DOTS, URP, HDRP, Addressables, MonoBehaviour, ScriptableObject]
+      priority_keywords: [Unity, 유니티, C#, DOTS, URP, HDRP]
+      default_support: [game-programmer, technical-artist]
+    brief:
+      mission: Unity C#, DOTS, URP/HDRP, Addressables 기반 구현을 설계한다.
+      tasks: [project-structure, engine-config, implementation-guide, performance-profile]
+      deliverables: [Unity 프로젝트 구조, 엔진 설정, 구현 가이드, 성능 프로파일]
+      key_questions:
+        - 프로젝트 구조가 확장 가능한가
+        - 렌더 파이프라인 선택이 타겟 플랫폼에 적합한가
+        - 에셋 로딩 전략이 메모리 제약을 충족하는가
+      must_provide_evidence:
+        minimum_distinct_kinds: 2
+        required_kinds: [code_symbol_or_reference, repo_text_or_diff]
+        optional_kinds: [runtime_log_or_trace, dependency_or_sbom]
+        deferred_kinds: []
+      mcp:  # R28 (축 3 / Phase B)
+        minimum_call: 3
+        preferred_tools:
+          - id: mcp__plugin_oh-my-claudecode_t__ast_grep_search
+            rationale: "ast_grep_search: Unity C# 코드 구조 탐색 핵심 도구입니다. 이 도구 없이는 MonoBehaviour·ScriptableObject 구조를 추측으로 파악하여 아키텍처 오염의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_context7_context7__query-docs
+            rationale: "context7 query-docs: Unity API·DOTS·URP 공식 문서 참조 도구입니다. 이 도구 없이는 엔진 API·렌더 파이프라인을 추측으로 사용하여 품질 저하의 위험을 통제할 수 없습니다."
+          - id: mcp__claude_ai_Notion__notion-search
+            rationale: "notion-search: Unity 프로젝트 설정·결정 문서 저장소입니다. 이 도구 없이는 기존 엔진 설정·기술 결정을 추측으로 판단하여 프로젝트 오염의 위험을 통제할 수 없습니다."
+        prefetch_queries:
+          - tool: mcp__plugin_oh-my-claudecode_t__ast_grep_search
+            query: "MonoBehaviour ScriptableObject Component"
+            why: "Unity 컴포넌트 구조 식별"
+          - tool: mcp__plugin_context7_context7__query-docs
+            query: "Unity DOTS URP HDRP Addressables ScriptableObject"
+            why: "Unity API 참조"
+          - tool: mcp__claude_ai_Notion__notion-search
+            query: "Unity 프로젝트 구조 엔진 설정"
+            why: "기존 Unity 설정 맥락 로드"
+        deferred:
+          - tool: posthog
+            reason: "OAuth 유예"
+            fallback: "ast_grep_search 로 성능 프로파일링 코드 식별"
+
+  unreal-engineer:
+    display_name: Unreal 엔지니어
+    aliases: [unreal, ue5]
+    profile: .company-kit/docs/profiles/game-engineering.md
+    starter: .company-kit/templates/team-starters/game-dev.md
+    work_dirs:
+      - project-work/00-project
+      - project-work/04-backend
+      - project-work/12-game-production
+    routing:
+      keywords: [Unreal, UE5, 언리얼, C++, Blueprint, 블루프린트, GAS, Nanite, Lumen, MetaSound]
+      priority_keywords: [Unreal, UE5, 언리얼, Blueprint, GAS]
+      default_support: [game-programmer, technical-artist]
+    brief:
+      mission: UE5 C++/Blueprint, GAS, Nanite, Lumen 기반 구현을 설계한다.
+      tasks: [project-structure, engine-config, implementation-guide, performance-profile]
+      deliverables: [UE5 프로젝트 구조, 엔진 설정, 구현 가이드, 성능 프로파일]
+      key_questions:
+        - C++과 Blueprint 경계가 명확한가
+        - GAS 구조가 게임플레이 요구에 맞는가
+        - Nanite/Lumen 사용이 타겟 하드웨어에서 가능한가
+      must_provide_evidence:
+        minimum_distinct_kinds: 2
+        required_kinds: [code_symbol_or_reference, repo_text_or_diff]
+        optional_kinds: [runtime_log_or_trace, dependency_or_sbom]
+        deferred_kinds: []
+      mcp:  # R28 (축 3 / Phase B)
+        minimum_call: 3
+        preferred_tools:
+          - id: mcp__plugin_oh-my-claudecode_t__ast_grep_search
+            rationale: "ast_grep_search: UE5 C++/Blueprint 코드 구조 탐색 핵심 도구입니다. 이 도구 없이는 GAS·렌더링 파이프라인 구조를 추측으로 파악하여 아키텍처 오염의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_context7_context7__query-docs
+            rationale: "context7 query-docs: UE5 API·GAS·Nanite·Lumen 공식 문서 참조 도구입니다. 이 도구 없이는 엔진 API·렌더링 기술을 추측으로 사용하여 품질 저하의 위험을 통제할 수 없습니다."
+          - id: mcp__claude_ai_Notion__notion-search
+            rationale: "notion-search: UE5 프로젝트 설정·결정 문서 저장소입니다. 이 도구 없이는 기존 엔진 설정·기술 결정을 추측으로 판단하여 프로젝트 오염의 위험을 통제할 수 없습니다."
+        prefetch_queries:
+          - tool: mcp__plugin_oh-my-claudecode_t__ast_grep_search
+            query: "UObject AActor UGameplayAbility"
+            why: "UE5 코드 구조 식별"
+          - tool: mcp__plugin_context7_context7__query-docs
+            query: "Unreal Engine 5 GAS Nanite Lumen Blueprint C++"
+            why: "UE5 API 참조"
+          - tool: mcp__claude_ai_Notion__notion-search
+            query: "Unreal 프로젝트 구조 엔진 설정"
+            why: "기존 UE5 설정 맥락 로드"
+        deferred:
+          - tool: posthog
+            reason: "OAuth 유예"
+            fallback: "ast_grep_search 로 성능 프로파일링 코드 식별"
+
+  game-artist:
+    display_name: 게임 아티스트
+    aliases: [game-art, concept-art]
+    profile: .company-kit/docs/profiles/game-art.md
+    starter: .company-kit/templates/team-starters/game-art.md
+    work_dirs:
+      - project-work/00-project
+      - project-work/07-assets
+      - project-work/11-game-design
+      - project-work/12-game-production
+    routing:
+      keywords: [게임 아트, game, art, 컨셉아트, concept, 3D, 모델링, modeling, 애니메이션, animation, VFX, 캐릭터, character, 에셋]
+      priority_keywords: [game art, 컨셉아트, concept art, 3D, modeling, animation, VFX]
+      default_support: [technical-artist, graphic-designer]
+    brief:
+      mission: 컨셉아트, 3D 모델링, 애니메이션, VFX 스펙을 설계한다.
+      tasks: [art-spec, asset-list, style-guide, art-pipeline]
+      deliverables: [아트 스펙, 에셋 목록, 스타일 가이드, 아트 파이프라인]
+      key_questions:
+        - 아트 스타일이 게임 톤과 일치하는가
+        - 에셋 스펙이 엔진 제약(폴리곤·텍스처)을 충족하는가
+        - 애니메이션이 게임플레이 피드백을 명확히 전달하는가
+      must_provide_evidence:
+        minimum_distinct_kinds: 2
+        required_kinds: [repo_text_or_diff, architecture_or_decision_record]
+        optional_kinds: [external_spec_or_policy, experiment_or_feedback_artifact]
+        deferred_kinds: []
+      mcp:  # R28 (축 3 / Phase B)
+        minimum_call: 3
+        preferred_tools:
+          - id: mcp__claude_ai_Notion__notion-search
+            rationale: "notion-search: 게임 아티스트의 아트 스펙·스타일 가이드 저장소입니다. 이 도구 없이는 기존 아트 스타일·에셋 스펙을 추측으로 판단하여 비주얼 오염의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_context7_context7__query-docs
+            rationale: "context7 query-docs: 3D 모델링·애니메이션·VFX 기술 참조 도구입니다. 이 도구 없이는 에셋 제작 기술·파이프라인 규격을 추측으로 적용하여 품질 저하의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_oh-my-claudecode_t__ast_grep_search
+            rationale: "ast_grep_search: 에셋 파이프라인·임포트 설정 코드 탐색 도구입니다. 이 도구 없이는 기존 임포트·머티리얼 설정을 발견하지 못해 에셋 구성을 추측으로 설계하여 오염의 위험을 통제할 수 없습니다."
+        prefetch_queries:
+          - tool: mcp__claude_ai_Notion__notion-search
+            query: "게임 아트 스타일 가이드 에셋 스펙"
+            why: "기존 아트 문서 선점 로드"
+          - tool: mcp__plugin_context7_context7__query-docs
+            query: "game art pipeline 3D modeling animation VFX asset specification"
+            why: "아트 파이프라인 기술 참조"
+          - tool: mcp__plugin_oh-my-claudecode_t__ast_grep_search
+            query: "asset import texture material mesh"
+            why: "에셋 파이프라인 코드 식별"
+        deferred:
+          - tool: figma
+            reason: "OAuth 유예"
+            fallback: "pencil batch_get 으로 .pen 디자인 파일 조회 + notepad 로 아트 스펙 기록"
+          - tool: posthog
+            reason: "OAuth 유예"
+            fallback: "notion-search 로 플레이테스트 시각 피드백 메모 검색"
+
+  technical-artist:
+    display_name: 테크니컬 아티스트
+    aliases: [tech-art, shader]
+    profile: .company-kit/docs/profiles/game-art.md
+    starter: .company-kit/templates/team-starters/game-art.md
+    work_dirs:
+      - project-work/00-project
+      - project-work/07-assets
+      - project-work/12-game-production
+    routing:
+      keywords: [테크니컬 아트, tech, art, 셰이더, shader, 렌더, 파이프라인, render, pipeline, 최적화, optimization, LOD]
+      priority_keywords: [tech art, 셰이더, shader, render pipeline, optimization]
+      default_support: [game-artist, game-programmer]
+    brief:
+      mission: 셰이더, 렌더 파이프라인, 아트-테크 브릿지, 최적화를 설계한다.
+      tasks: [shader-spec, pipeline-design, performance-budget, art-tech-guide]
+      deliverables: [셰이더 스펙, 파이프라인 설계, 성능 기준, 아트-테크 가이드]
+      key_questions:
+        - 셰이더 복잡도가 타겟 GPU 예산 내인가
+        - 아트 파이프라인이 반복 작업을 최소화하는가
+        - LOD 전략이 시각 품질과 성능을 균형 잡는가
+      must_provide_evidence:
+        minimum_distinct_kinds: 2
+        required_kinds: [code_symbol_or_reference, repo_text_or_diff]
+        optional_kinds: [runtime_log_or_trace, architecture_or_decision_record]
+        deferred_kinds: []
+      mcp:  # R28 (축 3 / Phase B)
+        minimum_call: 3
+        preferred_tools:
+          - id: mcp__plugin_oh-my-claudecode_t__ast_grep_search
+            rationale: "ast_grep_search: 테크니컬 아티스트의 셰이더·렌더 파이프라인 코드 탐색 핵심 도구입니다. 이 도구 없이는 셰이더·LOD·렌더링 구조를 추측으로 파악하여 파이프라인 오염의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_context7_context7__query-docs
+            rationale: "context7 query-docs: 셰이더 언어·렌더링 기술 참조 도구입니다. 이 도구 없이는 셰이더 문법·렌더링 기법을 추측으로 적용하여 품질 저하의 위험을 통제할 수 없습니다."
+          - id: mcp__claude_ai_Notion__notion-search
+            rationale: "notion-search: 아트-테크 파이프라인 결정 문서 저장소입니다. 이 도구 없이는 기존 파이프라인 결정·성능 예산을 추측으로 판단하여 아트-테크 오염의 위험을 통제할 수 없습니다."
+        prefetch_queries:
+          - tool: mcp__plugin_oh-my-claudecode_t__ast_grep_search
+            query: "shader material render LOD"
+            why: "셰이더·렌더링 코드 식별"
+          - tool: mcp__plugin_context7_context7__query-docs
+            query: "shader programming render pipeline optimization LOD GPU"
+            why: "렌더링 기술 참조"
+          - tool: mcp__claude_ai_Notion__notion-search
+            query: "셰이더 렌더 파이프라인 최적화 아트 테크"
+            why: "기존 기술 결정 맥락 로드"
+        deferred:
+          - tool: posthog
+            reason: "OAuth 유예"
+            fallback: "ast_grep_search 로 성능 프로파일링 코드 식별"
+
+  game-audio:
+    display_name: 게임 오디오
+    aliases: [sound-design, game-music]
+    profile: .company-kit/docs/profiles/game-audio.md
+    starter: .company-kit/templates/team-starters/game-audio.md
+    work_dirs:
+      - project-work/00-project
+      - project-work/07-assets
+      - project-work/12-game-production
+    routing:
+      keywords: [게임 오디오, game, audio, 사운드, sound, 음악, music, 효과음, SFX, BGM, 오디오 시스템, FMOD, Wwise, MetaSound]
+      priority_keywords: [game audio, 사운드, sound, SFX, BGM, FMOD, Wwise]
+      default_support: [game-programmer, game-designer]
+    brief:
+      mission: 사운드 디자인, 음악 방향, 오디오 시스템 구현을 설계한다.
+      tasks: [audio-design, asset-list, implementation-spec, mixing-guide]
+      deliverables: [오디오 설계서, 에셋 목록, 구현 스펙, 믹싱 가이드]
+      key_questions:
+        - 오디오가 게임 상태와 동적으로 반응하는가
+        - 사운드 에셋 포맷과 품질이 플랫폼 제약을 충족하는가
+        - 공간 오디오가 게임플레이 정보를 전달하는가
+      must_provide_evidence:
+        minimum_distinct_kinds: 2
+        required_kinds: [repo_text_or_diff, architecture_or_decision_record]
+        optional_kinds: [external_spec_or_policy, runtime_log_or_trace]
+        deferred_kinds: []
+      mcp:  # R28 (축 3 / Phase B)
+        minimum_call: 3
+        preferred_tools:
+          - id: mcp__claude_ai_Notion__notion-search
+            rationale: "notion-search: 게임 오디오의 사운드 설계·음악 방향 문서 저장소입니다. 이 도구 없이는 기존 사운드 설계·음악 방향을 추측으로 판단하여 오디오 오염의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_context7_context7__query-docs
+            rationale: "context7 query-docs: FMOD·Wwise·오디오 미들웨어 참조 도구입니다. 이 도구 없이는 오디오 미들웨어 API·적응형 사운드 패턴을 추측으로 구현하여 품질 저하의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_oh-my-claudecode_t__ast_grep_search
+            rationale: "ast_grep_search: 오디오 시스템 코드 탐색 도구입니다. 이 도구 없이는 기존 오디오 트리거·이벤트 구조를 발견하지 못해 사운드를 추측으로 연결하여 오염의 위험을 통제할 수 없습니다."
+        prefetch_queries:
+          - tool: mcp__claude_ai_Notion__notion-search
+            query: "게임 오디오 사운드 디자인 음악 SFX BGM"
+            why: "기존 오디오 문서 선점 로드"
+          - tool: mcp__plugin_context7_context7__query-docs
+            query: "game audio FMOD Wwise spatial audio sound design"
+            why: "오디오 미들웨어 참조"
+          - tool: mcp__plugin_oh-my-claudecode_t__ast_grep_search
+            query: "audio sound music sfx play"
+            why: "오디오 시스템 코드 식별"
+        deferred:
+          - tool: posthog
+            reason: "OAuth 유예"
+            fallback: "notion-search 로 오디오 피드백 메모 검색"
+
+  game-qa:
+    display_name: 게임 QA
+    aliases: [playtest, game-test]
+    profile: .company-kit/docs/profiles/game-qa.md
+    starter: .company-kit/templates/team-starters/game-qa.md
+    work_dirs:
+      - project-work/00-project
+      - project-work/08-reviews
+      - project-work/11-game-design
+      - project-work/12-game-production
+    routing:
+      keywords: [게임 QA, 플레이테스트, playtest, 성능 QA, performance, 밸런스 검증, balance, 호환성, compatibility, 게임 테스트, game test, bug]
+      priority_keywords: [playtest, 게임 QA, game test, balance, 성능]
+      default_support: [game-designer, qa-reviewer]
+    brief:
+      mission: 플레이테스트, 성능 QA, 밸런스 검증, 호환성 테스트를 설계한다.
+      tasks: [test-plan, playtest-report, bug-triage, performance-benchmark]
+      deliverables: [테스트 계획, 플레이테스트 리포트, 버그 분류, 성능 벤치마크]
+      key_questions:
+        - 핵심 게임플레이 루프가 의도대로 작동하는가
+        - 성능이 타겟 프레임레이트를 유지하는가
+        - 밸런스가 다양한 플레이 스타일을 허용하는가
+      must_provide_evidence:
+        minimum_distinct_kinds: 2
+        required_kinds: [runtime_log_or_trace, repo_text_or_diff]
+        optional_kinds: [experiment_or_feedback_artifact, code_symbol_or_reference]
+        deferred_kinds: []
+      mcp:  # R28 (축 3 / Phase B)
+        minimum_call: 3
+        preferred_tools:
+          - id: mcp__plugin_oh-my-claudecode_t__ast_grep_search
+            rationale: "ast_grep_search: 게임 QA의 테스트 코드·밸런스 데이터 탐색 핵심 도구입니다. 이 도구 없이는 테스트 커버리지·밸런스 데이터를 추측으로 파악하여 검증 오염의 위험을 통제할 수 없습니다."
+          - id: mcp__claude_ai_Notion__notion-search
+            rationale: "notion-search: 플레이테스트 결과·버그 리포트 저장소입니다. 이 도구 없이는 기존 테스트 결과·버그 이력을 추측으로 판단하여 QA 품질 저하의 위험을 통제할 수 없습니다."
+          - id: mcp__plugin_context7_context7__query-docs
+            rationale: "context7 query-docs: QA 방법론·성능 프로파일링 참조 도구입니다. 이 도구 없이는 테스트 설계·성능 기준을 추측으로 구성하여 품질 저하의 위험을 통제할 수 없습니다."
+        prefetch_queries:
+          - tool: mcp__plugin_oh-my-claudecode_t__ast_grep_search
+            query: "test assert balance config performance"
+            why: "테스트·밸런스 코드 식별"
+          - tool: mcp__claude_ai_Notion__notion-search
+            query: "플레이테스트 버그 성능 밸런스 QA"
+            why: "기존 QA 결과 선점 로드"
+          - tool: mcp__plugin_context7_context7__query-docs
+            query: "game QA testing playtest performance profiling balance"
+            why: "QA 방법론 참조"
+        deferred:
+          - tool: posthog
+            reason: "OAuth 유예"
+            fallback: "ast_grep_search 로 성능 로깅 코드 식별 + notion-search 로 성능 벤치마크 메모 검색"
+
+# ──────────────────────────────────────────
+# Skill Packs
+# ──────────────────────────────────────────
+packs:
+  core:
+    - implementation-planner
+    - task-orchestrator
+    - docs-sync
+
+  backend:
+    - task-orchestrator
+    - commit-guard
+    - architecture-review
+    - verification-loop
+
+  frontend:
+    - browser-qa
+    - commit-guard
+    - docs-sync
+
+  design:
+    - docs-sync
+    - research-brief
+
+  docs:
+    - docs-sync
+    - research-brief
+    - doc-export
+
+  research:
+    - research-brief
+    - architecture-review
+
+  review:
+    - architecture-review
+    - verification-loop
+    - commit-guard
+
+# ──────────────────────────────────────────
+# Template Settings
+# ──────────────────────────────────────────
+template:
+  version: "1.0.14"
+  leader_model: opus
+  worker_model: sonnet
+  max_concurrent_workers: 5
+  default_mode: plan  # plan | execute
