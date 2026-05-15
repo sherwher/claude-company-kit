@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PLUGIN_ROOT\"/scripts/claude-userpromptsubmit-leader-wake.sh",
+            "command": "bash \"$CLAUDE_PLUGIN_ROOT\"/scripts/hooks/claude-userpromptsubmit-leader-wake.sh",
             "timeout": 5
           }
         ]
