@@ -10,7 +10,7 @@
     {
       "name": "claude-company-kit",
       "description": "Leader-worker orchestration with cmux/tmux runners for Claude Code (preview)",
-      "version": "0.1.1-preview",
+      "version": "0.1.3-preview",
       "author": {
         "name": "Seonggeun Lee",
         "email": "sherwher@sherwher.org"
@@ -21,5 +21,5 @@
       "tags": ["orchestration", "leader-worker", "cmux", "tmux", "lskun"]
     }
   ],
-  "version": "0.1.1-preview"
+  "version": "0.1.3-preview"
 }

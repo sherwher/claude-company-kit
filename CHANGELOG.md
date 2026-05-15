@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.1.3-preview - 2026-05-15
+
+자동 release (2026-05-15T05:38:47Z). upstream ai-company 1.13.5 에서 추출.
+
+# Changelog
+
 ## v0.1.1-preview - 2026-05-15
 
 MVP 패키징 — install 가능한 첫 버전.
