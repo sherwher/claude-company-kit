@@ -1,6 +1,6 @@
 {
   "name": "claude-company-kit",
-  "version": "0.1.0-preview",
+  "version": "0.1.1-preview",
   "description": "Leader-worker orchestration with cmux/tmux runners for Claude Code (preview)",
   "author": {
     "name": "Seonggeun Lee",

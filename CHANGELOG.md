@@ -1,18 +1,20 @@
 # Changelog
 
-## v0.1.0-preview - 2026-05-15
+## v0.1.1-preview - 2026-05-15
 
-Initial preview release. Extracted from internal `ai-company` upstream v1.13.1.
+MVP 패키징 — install 가능한 첫 버전.
 
 ### Added
 
-- Plugin scaffold (`.claude-plugin/`) — pending Phase 2.1
-- Scripts: cmux/tmux runners, prepare-session, spawn helpers
-- Skills, templates, scaffold for project bootstrap
+- `.claude-plugin/marketplace.json` — 마켓플레이스 메타 (이제 `/plugin marketplace add` 가능)
+- `hooks/hooks.json` — UserPromptSubmit leader-wake hook
+- `agents/engineer.md`, `agents/researcher.md` — 최소 2개 워커 정의
+- `commands/rw.md`, `commands/spawn-worker.md` — slash command (`/claude-company-kit:*` namespace 자동 적용)
 
-### Pending
+### Changed
 
-- `hooks/hooks.json` (Phase 2.4)
-- `agents/<name>.md` directory restructure (Phase 2.3)
-- Slash command namespace (`/claude-company-kit:*`) (Phase 2.2)
-- Install smoke test (Phase 1.3.1)
+- plugin.json version 0.1.0-preview → 0.1.1-preview
+
+## v0.1.0-preview - 2026-05-15
+
+Initial preview release. Code mirror only.

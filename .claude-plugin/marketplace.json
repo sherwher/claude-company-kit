@@ -1,0 +1,25 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "claude-company-kit",
+  "description": "LSKun tooling marketplace — leader-worker orchestration plugin",
+  "owner": {
+    "name": "Seonggeun Lee",
+    "email": "sherwher@sherwher.org"
+  },
+  "plugins": [
+    {
+      "name": "claude-company-kit",
+      "description": "Leader-worker orchestration with cmux/tmux runners for Claude Code (preview)",
+      "version": "0.1.1-preview",
+      "author": {
+        "name": "Seonggeun Lee",
+        "email": "sherwher@sherwher.org"
+      },
+      "source": "./",
+      "category": "productivity",
+      "homepage": "https://github.com/sherwher/claude-company-kit",
+      "tags": ["orchestration", "leader-worker", "cmux", "tmux", "lskun"]
+    }
+  ],
+  "version": "0.1.1-preview"
+}
